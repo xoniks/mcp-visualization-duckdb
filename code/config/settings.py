@@ -14,7 +14,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-print(f"Project root set to: {PROJECT_ROOT}")
+# print(f"Project root set to: {PROJECT_ROOT}")
 
 
 class ConnectionConfig(BaseSettings):
@@ -493,9 +493,9 @@ class ConfigManager:
                 # Force the database path from environment variable if set
                 db_path = os.getenv("DUCKDB_DATABASE_PATH")
                 if db_path:
-                    print(f"🔧 Using database path from environment: {db_path}")
+                    print(f"Using database path: {db_path}")
 
-                self._settings = Settings()
+                # self._settings = Settings()
 
                 # Additional safety check for database path
                 actual_path = self._settings.database.connection.path

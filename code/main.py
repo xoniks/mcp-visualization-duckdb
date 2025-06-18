@@ -1,8 +1,4 @@
-# code/main.py
-#!/usr/bin/env python3
-"""
-Main entry point for the MCP Data Visualization Server
-"""
+# Update your code/main.py with these fixes:
 
 import asyncio
 import sys
@@ -14,222 +10,164 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Import the config_manager instance directly from settings
-# ✅ Import Settings for type hinting consistency
 from config.settings import config_manager, Settings
 from utils.logger import setup_logging
 
-# Assuming DataVisualizationMCPServer is within mcp_server.server
-from mcp_server.server import DataVisualizationMCPServer
 
-
-def parse_arguments():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(
-        description="MCP Data Visualization Server - Natural Language to Charts",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  python main.py              # Start with default settings
-  python main.py --debug            # Enable debug logging
-  python main.py --log-file logs/server.log   # Log to file
-  python main.py --no-samples         # Don't generate sample data
-
-Environment Variables:
-  LOG_LEVEL                   Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  DEBUG_MODE                  Enable debug mode (true/false)
-  GENERATE_SAMPLE_DATA        Generate sample data on startup (true/false)
-  DATABASE_PATH               Path to DuckDB database file
-  OLLAMA_BASE_URL             Ollama server URL (default: http://localhost:11434)
-  OLLAMA_MODEL                Ollama model to use (default: codellama:7b)
-        """,
-    )
-
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-
-    parser.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        help="Set logging level (overrides config)",
-    )
-
-    parser.add_argument(
-        "--log-file", type=str, help="Log to file (in addition to console)"
-    )
-
-    parser.add_argument(
-        "--no-samples",
-        action="store_true",
-        help="Don't generate sample data on startup",
-    )
-
-    parser.add_argument("--config", type=str, help="Path to configuration file")
-
-    parser.add_argument(
-        "--transport",
-        choices=["stdio"],
-        default="stdio",
-        help="Transport protocol (currently only stdio is supported)",
-    )
-
-    parser.add_argument(
-        "--version", action="version", version="MCP Data Visualization Server v1.0.0"
-    )
-
-    return parser.parse_args()
-
-
-async def check_ollama_connection():
-    """Check if Ollama is running and accessible"""
-    try:
-        import httpx
-
-        # ✅ Get the full settings object from config_manager
-        settings: Settings = config_manager.get_settings()
-        llm_config = settings.llm.ollama  # Direct access to the OllamaConfig
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"{llm_config.base_url}/api/tags", timeout=5.0)
-
-            if response.status_code == 200:
-                models_data = response.json()
-                models = [model["name"] for model in models_data.get("models", [])]
-
-                if llm_config.model in models:
-                    print(f"✅ Ollama connected - Model '{llm_config.model}' available")
-                    return True
-                else:
-                    print(
-                        f"⚠️  Ollama connected but model '{llm_config.model}' not found"
-                    )
-                    print(f"Available models: {', '.join(models[:5])}")
-                    print(
-                        f"You can pull the model with: ollama pull {llm_config.model}"
-                    )
-                    return True  # Still functional, just need to pull model
-            else:
-                print(f"❌ Ollama HTTP error: {response.status_code}")
-                return False
-
-    except Exception as e:
-        print(f"⚠️  Cannot connect to Ollama: {e}")
-        print("Make sure Ollama is running with: ollama serve")
-        print("Server will use fallback methods for natural language processing")
-        return True  # Don't fail completely, use fallbacks
+def setup_environment():
+    """Setup environment for the application"""
+    # Set UTF-8 encoding for stdout to handle Unicode characters
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except:
+            pass
 
 
 def print_startup_banner():
-    """Print startup banner"""
-    banner = """
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║           🎯 MCP Data Visualization Server v1.0.0            ║
-║                                                              ║
-║         Transform natural language into beautiful charts     ║
-║         • DuckDB for fast local analytics                    ║
-║         • Ollama for natural language processing             ║
-║         • • Plotly for interactive visualizations            ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-    """
-    print(banner)
+    """Print startup banner - only when not in MCP mode"""
+    # Skip banner in MCP/STDIO mode to avoid interfering with protocol
+    if len(sys.argv) > 1 and any(
+        arg in ["--stdio", "--transport=stdio"] for arg in sys.argv
+    ):
+        return
+
+    # Also check if we're being run from Claude Desktop (no terminal)
+    if not sys.stdout.isatty():
+        return
+
+    try:
+        # Use simple ASCII banner instead of Unicode to avoid encoding issues
+        banner = """
+==============================================================
+           MCP Data Visualization Server v1.0.0            
+                                                            
+         Transform natural language into beautiful charts   
+         * DuckDB for fast local analytics                  
+         * Ollama for natural language processing           
+         * Plotly for interactive visualizations            
+==============================================================
+"""
+        print(banner)
+    except UnicodeEncodeError:
+        # Fallback to simple text if encoding fails
+        print("MCP Data Visualization Server v1.0.0 - Starting...")
+
+
+def check_dependencies():
+    """Check if required dependencies are available"""
+    try:
+        import duckdb
+        import pandas
+        import plotly
+
+        # Only log to stderr to avoid interfering with MCP protocol
+        logging.getLogger(__name__).info("All required dependencies are available")
+        return True
+    except ImportError as e:
+        logging.getLogger(__name__).error(f"Missing dependency: {e}")
+        return False
+
+
+async def check_ollama_connection():
+    """Check Ollama connection"""
+    try:
+        from llm.ollama_client import OllamaClient
+
+        client = OllamaClient()
+        is_connected = await client.check_connection()
+
+        if is_connected:
+            # Only use stderr for output to avoid MCP protocol interference
+            print("✓ Ollama connected - Model available", file=sys.stderr)
+        else:
+            print(
+                "⚠ Ollama connection failed - will use fallback methods",
+                file=sys.stderr,
+            )
+
+        return is_connected
+    except Exception as e:
+        print(f"✗ Ollama check failed: {e}", file=sys.stderr)
+        return False
 
 
 async def main():
     """Main entry point"""
-    # Parse arguments
-    args = parse_arguments()
+    setup_environment()
 
-    # Print banner
-    print_startup_banner()
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="MCP Data Visualization Server")
+    parser.add_argument(
+        "--transport",
+        default="stdio",
+        choices=["stdio", "websocket", "http"],
+        help="Transport method for MCP communication",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8000, help="Port for websocket/http transport"
+    )
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
 
-    # Load configuration using the global config_manager instance
-    # This will load the YAML, .env, and environment variables
-    settings: Settings = config_manager.get_settings()
+    args = parser.parse_args()
 
-    # Access specific config sections from the 'settings' object
-    server_config = settings.server
-    dev_config = settings.development
+    # Only print banner if not in MCP stdio mode
+    if args.transport != "stdio" or sys.stdout.isatty():
+        print_startup_banner()
 
-    # Override configuration with command line arguments
-    if args.debug:
-        log_level = "DEBUG"
-    elif args.log_level:
-        log_level = args.log_level
-    else:
-        log_level = server_config.log_level
+    # Setup logging to stderr only
+    log_level = "DEBUG" if args.debug else "INFO"
+    setup_logging(log_level)
+    logger = logging.getLogger(__name__)
 
-    # Setup logging
-    setup_logging(log_level=log_level, log_file=args.log_file, enable_rich=True)
+    # Log to stderr to avoid MCP interference
+    logger.info("Starting data-viz-server v1.0.0")
 
-    logger = logging.getLogger("mcp-viz-server")
-    logger.info(f"Starting {server_config.name} v{server_config.version}")
+    # Check dependencies (log only, don't print)
+    if not check_dependencies():
+        logger.warning("Some dependencies may be missing")
 
-    # --- REMOVE OR RE-THINK THIS SECTION ---
-    # The original error was here because 'check_dependencies' is not defined.
-    # If you intend to implement a general dependency check, you should create
-    # that function (e.g., in utils/dependency_checker.py or within this file).
-    # For now, we remove the problematic call.
-    #
-    # print("🔍 Checking dependencies...")
-    # if not await check_dependencies(): # This line caused the error
-    #    sys.exit(1)
-    # print("✅ All dependencies available")
-    #
-    # For now, we can just print a placeholder or rely only on Ollama check.
-    logger.info("Skipping general dependency check (not implemented yet or removed).")
-
-    # Check Ollama connection (This function IS defined)
-    print("🔍 Checking Ollama connection...")
+    # Check Ollama connection
     await check_ollama_connection()
 
-    # Override sample data generation if requested by --no-samples
-    # This directly modifies the Pydantic settings object's attribute
-    if args.no_samples:
-        settings.development.sample_data.generate_on_startup = False
-        logger.info("Sample data generation disabled via --no-samples argument.")
-
-    logger.info(
-        f"Sample data generation on startup: {settings.development.sample_data.generate_on_startup}"
-    )
-
+    # Get server configuration
     try:
-        # Create server instance. The server's __init__ will now get config from config_manager.
+        config: Settings = config_manager.get_settings()
+        logger.info(
+            f"Sample data generation on startup: {config.development.sample_data.generate_on_startup}"
+        )
+    except Exception as e:
+        logger.error(f"Error loading configuration: {e}")
+        return 1
+
+    # Import and start the server
+    try:
+        from mcp_server.server import DataVisualizationMCPServer
+
+        # Create and configure server
         server = DataVisualizationMCPServer()
 
-        print("🚀 Starting MCP server...")
-        print(f"📊 Transport: {args.transport}")
+        # Only print transport info to stderr if we have a terminal
+        if sys.stdout.isatty():
+            print(f"🚀 Starting MCP server...", file=sys.stderr)
+            print(f"📊 Transport: {args.transport}", file=sys.stderr)
 
         await server.run(transport=args.transport)
 
     except KeyboardInterrupt:
-        print("\n🛑 Server shutdown requested")
-        logger.info("Server shutdown by user")
+        if sys.stdout.isatty():
+            print("\n🛑 Server shutdown requested", file=sys.stderr)
+        logger.info("Server shutdown requested by user")
     except Exception as e:
-        print(f"\n❌ Server error: {e}")
-        logger.error(f"Server error: {e}", exc_info=True)
-        sys.exit(1)
+        logger.error(f"Server error: {e}")
+        if sys.stdout.isatty():
+            print(f"❌ Server error: {e}", file=sys.stderr)
+        return 1
     finally:
-        print("👋 Goodbye!")
-
-
-def create_sample_chart():
-    """Create a sample chart for testing (utility function)"""
-    from visualization.chart_generator import ChartGenerator
-    from visualization.chart_types import ChartType
-
-    generator = ChartGenerator()
-    html_widget = generator.create_sample_chart(ChartType.BAR)
-
-    output_file = Path("sample_chart.html")
-    with open(output_file, "w") as f:
-        f.write(html_widget)
-
-    print(f"Sample chart saved to: {output_file}")
-    return html_widget
+        if sys.stdout.isatty():
+            print("👋 Goodbye!", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "sample":
-        create_sample_chart()
-    else:
-        asyncio.run(main())
+    sys.exit(asyncio.run(main()) or 0)
