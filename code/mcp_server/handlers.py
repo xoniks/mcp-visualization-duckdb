@@ -40,6 +40,12 @@ class RequestHandler:
                 "validate_chart_config": self._handle_validate_chart_config,
                 "explain_chart_types": self._handle_explain_chart_types,
                 "server_status": self._handle_server_status,
+                # ✅ NEW: Database management tools
+                "change_database": self._handle_change_database,
+                "browse_databases": self._handle_browse_databases,
+                "list_recent_databases": self._handle_list_recent_databases,
+                "browse_and_select_database": self._handle_browse_and_select_database,
+                "select_database_by_number": self._handle_select_database_by_number,
             }
 
             handler = handlers.get(name)
@@ -51,6 +57,226 @@ class RequestHandler:
         except Exception as e:
             logger.error(f"Error handling tool call '{name}': {e}")
             return [TextContent(type="text", text=f"Error: {str(e)}")]
+
+    # ✅ NEW: Database management handlers
+    async def _handle_change_database(self, arguments: dict) -> List[TextContent]:
+        """Handle change_database tool"""
+        try:
+            database_path = arguments.get("database_path")
+            if not database_path:
+                return [TextContent(type="text", text="❌ Database path is required")]
+
+            # Close current connection
+            if self.db_manager:
+                self.db_manager.close()
+
+            # Create new database manager with new path
+            from database.manager import DatabaseManager
+            from pathlib import Path
+
+            new_path = (
+                Path(database_path) if database_path != ":memory:" else database_path
+            )
+            self.db_manager = DatabaseManager(db_path=new_path)
+
+            # Get table info from new database
+            tables = self.db_manager.get_tables()
+
+            return [
+                TextContent(
+                    type="text",
+                    text=f"✅ Successfully connected to database: {database_path}\n\nAvailable tables: {', '.join([t['name'] for t in tables]) if tables else 'No tables found'}",
+                )
+            ]
+
+        except Exception as e:
+            return [
+                TextContent(
+                    type="text",
+                    text=f"❌ Failed to connect to database {database_path}: {str(e)}",
+                )
+            ]
+
+    async def _handle_browse_databases(self, arguments: dict) -> List[TextContent]:
+        """Handle browse_databases tool"""
+        try:
+            from pathlib import Path
+
+            directory_path = arguments.get("directory_path", "./data/")
+            search_path = Path(directory_path)
+
+            if not search_path.exists():
+                return [
+                    TextContent(
+                        type="text", text=f"❌ Directory not found: {directory_path}"
+                    )
+                ]
+
+            # Find all .duckdb files
+            db_files = list(search_path.glob("*.duckdb"))
+
+            if not db_files:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"No .duckdb files found in {directory_path}\n\nYou can:\n1. Create a new database by specifying a new path\n2. Use ':memory:' for an in-memory database",
+                    )
+                ]
+
+            result = f"📁 Found {len(db_files)} database files in {directory_path}:\n\n"
+            for i, db_file in enumerate(db_files, 1):
+                # Get file size
+                size_mb = db_file.stat().st_size / (1024 * 1024)
+                result += f"{i}. **{db_file.name}**\n"
+                result += f"   Path: `{db_file}`\n"
+                result += f"   Size: {size_mb:.2f} MB\n\n"
+
+            result += "To connect to any of these databases, use the `change_database` tool with the full path."
+
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+            ]
+
+    async def _handle_list_recent_databases(self, arguments: dict) -> List[TextContent]:
+        """Handle list_recent_databases tool"""
+        try:
+            current_path = str(self.db_manager.db_path) if self.db_manager else "None"
+
+            result = "📂 **Database Management:**\n\n"
+            result += f"🔗 **Currently connected:** `{current_path}`\n\n"
+            result += "💡 **Available Commands:**\n"
+            result += "• `change_database` - Connect to a different database file\n"
+            result += "• `browse_databases` - Find database files in a directory\n"
+            result += "• `browse_and_select_database` - Interactive browser with numbered selection\n"
+            result += "• Use path like `C:/path/to/database.duckdb` or `:memory:`\n\n"
+            result += "**Example usage:**\n"
+            result += '• "Connect to C:/my-data/sales.duckdb"\n'
+            result += '• "Switch to in-memory database"\n'
+            result += '• "Browse databases in ./data/ folder"\n'
+            result += '• "Browse databases in Downloads folder with file list"'
+
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"❌ Error listing databases: {str(e)}")
+            ]
+
+    async def _handle_browse_and_select_database(
+        self, arguments: dict
+    ) -> List[TextContent]:
+        """Handle browse_and_select_database tool"""
+        try:
+            from pathlib import Path
+            import datetime
+
+            directory_path = arguments.get("directory_path", "./data/")
+            show_all_files = arguments.get("show_all_files", False)
+
+            search_path = Path(directory_path)
+            if not search_path.exists():
+                return [
+                    TextContent(
+                        type="text", text=f"❌ Directory not found: {directory_path}"
+                    )
+                ]
+
+            # Find database files
+            db_files = list(search_path.glob("*.duckdb"))
+
+            # Optionally show other files too
+            other_files = []
+            if show_all_files:
+                all_files = [f for f in search_path.iterdir() if f.is_file()]
+                other_files = [f for f in all_files if not f.name.endswith(".duckdb")]
+
+            result = f"📁 **Database Browser: {directory_path}**\n\n"
+
+            if db_files:
+                result += "🗃️ **Available Databases:**\n"
+                for i, db_file in enumerate(db_files, 1):
+                    size_mb = db_file.stat().st_size / (1024 * 1024)
+                    modified = db_file.stat().st_mtime
+                    mod_date = datetime.datetime.fromtimestamp(modified).strftime(
+                        "%Y-%m-%d %H:%M"
+                    )
+
+                    result += f"**{i}.** `{db_file.name}` ({size_mb:.1f}MB, modified: {mod_date})\n"
+
+                result += f"\n💡 **To connect:** Use `select_database_by_number` with a number (1-{len(db_files)})\n"
+                result += '📝 **Example:** "Select database number 2"\n\n'
+            else:
+                result += "❌ No .duckdb files found in this directory.\n\n"
+
+            if other_files and show_all_files:
+                result += "📄 **Other files in directory:**\n"
+                for f in other_files[:10]:  # Limit to 10 files
+                    result += f"   • {f.name}\n"
+                if len(other_files) > 10:
+                    result += f"   ... and {len(other_files) - 10} more files\n"
+
+            result += "\n🔧 **Other options:**\n"
+            result += "• Use `change_database` with a full path\n"
+            result += "• Use `:memory:` for in-memory database\n"
+            result += "• Browse a different directory\n"
+
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+            ]
+
+    async def _handle_select_database_by_number(
+        self, arguments: dict
+    ) -> List[TextContent]:
+        """Handle select_database_by_number tool"""
+        try:
+            from pathlib import Path
+
+            selection_number = arguments.get("selection_number")
+            directory_path = arguments.get("directory_path", "./data/")
+
+            if selection_number is None:
+                return [
+                    TextContent(type="text", text="❌ Selection number is required")
+                ]
+
+            search_path = Path(directory_path)
+            db_files = sorted(list(search_path.glob("*.duckdb")))
+
+            if not db_files:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"❌ No database files found in {directory_path}",
+                    )
+                ]
+
+            if selection_number < 1 or selection_number > len(db_files):
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"❌ Invalid selection. Please choose a number between 1 and {len(db_files)}",
+                    )
+                ]
+
+            selected_db = db_files[selection_number - 1]
+
+            # Use the existing change_database logic
+            return await self._handle_change_database(
+                {"database_path": str(selected_db)}
+            )
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"❌ Error selecting database: {str(e)}")
+            ]
+
+    # ... rest of your existing handlers remain exactly the same ...
 
     async def _handle_list_tables(self, arguments: dict) -> List[TextContent]:
         """Handle list_tables tool"""
@@ -639,6 +865,8 @@ class RequestHandler:
             response = "# Server Status\n\n"
             response += "## Component Status\n"
             response += f"- **Database:** {db_status}\n"
+            if self.db_manager:
+                response += f"- **Database Path:** {self.db_manager.db_path}\n"
             response += f"- **LLM Client:** {llm_status}\n"
             response += f"- **Chart Generator:** {chart_status}\n\n"
 
