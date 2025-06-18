@@ -1,0 +1,43 @@
+# Python dependencies
+# MCP Data Visualization Server Dependencies
+
+# Core MCP and async functionality
+mcp>=1.0.0
+asyncio-mqtt>=0.11.1
+httpx>=0.25.0
+
+# Database and data processing
+duckdb>=0.9.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization libraries
+plotly>=5.17.0
+kaleido>=0.2.1
+
+# Configuration and environment
+PyYAML>=6.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Logging and utilities
+rich>=13.0.0
+click>=8.1.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+
+# Optional: For advanced chart types
+seaborn>=0.12.0
+matplotlib>=3.7.0
+
+# Optional: For additional data sources
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+pymysql>=1.1.0
