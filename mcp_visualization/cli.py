@@ -138,7 +138,7 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
                 default_python = manager.get_python_executable()
                 while True:
                     custom_python = Prompt.ask(
-                        "Python executable",
+                        "Python executable [press Enter for default]",
                         default=default_python,
                         show_default=True
                     )

@@ -495,7 +495,7 @@ class ConfigManager:
                 if db_path:
                     print(f"Using database path: {db_path}")
 
-                # self._settings = Settings()
+                self._settings = Settings()
 
                 # Additional safety check for database path
                 actual_path = self._settings.database.connection.path
