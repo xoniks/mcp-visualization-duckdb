@@ -10,7 +10,12 @@
       "Bash(rm:*)",
       "Bash(mkdir:*)",
       "Bash(cp:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_local.sh:*)",
+      "Bash(true)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

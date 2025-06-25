@@ -57,6 +57,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+test_venv/
+test_env/
+*_venv/
+*_env/
 
 # IDEs
 .vscode/
