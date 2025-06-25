@@ -94,3 +94,8 @@ htmlcov/
 
 # Claude Desktop backups
 claude_desktop_config.json.backup
+
+# Publishing scripts (contain sensitive info)
+publish.py
+publish.bat
+publish.sh
