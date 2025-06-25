@@ -136,12 +136,30 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
             
             if not py_path:
                 default_python = manager.get_python_executable()
-                custom_python = Prompt.ask(
-                    "Python executable",
-                    default=default_python,
-                    show_default=True
-                )
-                py_path = custom_python if custom_python != default_python else default_python
+                while True:
+                    custom_python = Prompt.ask(
+                        "Python executable",
+                        default=default_python,
+                        show_default=True
+                    )
+                    
+                    if manager.validate_python_path(custom_python):
+                        py_path = custom_python
+                        break
+                    else:
+                        print_error(f"Invalid Python path: {custom_python}")
+                        print_info("Please enter a valid Python executable path")
+                        print_info(f"Example: {default_python}")
+                        # Show common Python locations on Windows
+                        if sys.platform == "win32":
+                            print_info("Common locations:")
+                            print_info("  - C:\\Python310\\python.exe")
+                            print_info("  - C:\\Users\\YourName\\AppData\\Local\\Programs\\Python\\Python310\\python.exe")
+                            print_info("  - python (if in PATH)")
+                        
+                        if not Confirm.ask("Try again?", default=True):
+                            console.print("Configuration cancelled.")
+                            return
             
             # Show configuration preview
             console.print("\n📝 Configuration Preview:")

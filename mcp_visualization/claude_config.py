@@ -74,6 +74,25 @@ class ClaudeDesktopConfigManager:
         """Get current Python executable path"""
         return sys.executable
     
+    def validate_python_path(self, python_path: str) -> bool:
+        """Validate that the Python path is executable"""
+        try:
+            # Check if file exists and is executable
+            path = Path(python_path)
+            if not path.exists():
+                return False
+            if not path.is_file():
+                return False
+            
+            # For Windows, check if it's a .exe file or python command
+            if sys.platform == "win32":
+                if not (python_path.endswith('.exe') or 'python' in python_path.lower()):
+                    return False
+            
+            return True
+        except Exception:
+            return False
+    
     def get_package_path(self) -> Path:
         """Get installed package location"""
         import mcp_visualization
