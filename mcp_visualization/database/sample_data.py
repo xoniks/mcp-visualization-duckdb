@@ -26,10 +26,14 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
         db_path = str(mcp_dir / "data.duckdb")
     
     logger.info(f"Creating sample database at: {db_path}")
+    print(f"📍 Database path: {db_path}")
     
     try:
+        print(f"🔌 Connecting to database...")
         # Create database and tables
         with duckdb.connect(db_path) as conn:
+            print(f"✅ Connected to database successfully")
+            print(f"📊 Creating sales_data table...")
             # Sales data table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sales_data (
@@ -43,6 +47,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 )
             """)
             
+            print(f"📊 Inserting sales data...")
             # Insert sample sales data
             conn.execute("""
                 INSERT OR REPLACE INTO sales_data VALUES
@@ -58,6 +63,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 (10, 'Monitor', 'Electronics', 249.99, 3, '2024-01-24', 'South')
             """)
             
+            print(f"👥 Creating employee_data table...")
             # Employee data table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS employee_data (
@@ -71,6 +77,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 )
             """)
             
+            print(f"👥 Inserting employee data...")
             # Insert sample employee data
             conn.execute("""
                 INSERT OR REPLACE INTO employee_data VALUES
@@ -84,6 +91,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 (8, 'Henry Taylor', 'Sales', 61000.00, '2021-12-03', 33, 3.7)
             """)
             
+            print(f"🌤️  Creating weather_data table...")
             # Weather data table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS weather_data (
@@ -97,6 +105,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 )
             """)
             
+            print(f"🌤️  Inserting weather data...")
             # Insert sample weather data
             conn.execute("""
                 INSERT OR REPLACE INTO weather_data VALUES
@@ -110,11 +119,13 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 (8, 'Miami', '2024-01-02', 26.2, 82, 0.5, 6.9)
             """)
             
+            print(f"✅ Database creation completed successfully!")
             logger.info("Sample database created successfully with 3 tables:")
             logger.info("- sales_data (10 rows): Product sales with categories and regions")
             logger.info("- employee_data (8 rows): Employee information with performance")
             logger.info("- weather_data (8 rows): Weather measurements for different cities")
             
+        print(f"🎉 Sample database ready at: {db_path}")
         return db_path
         
     except Exception as e:

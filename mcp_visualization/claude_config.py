@@ -119,14 +119,17 @@ class ClaudeDesktopConfigManager:
                            create_sample_db: bool = True) -> Dict[str, Any]:
         """Create MCP server configuration for Claude Desktop"""
         
+        print(f"🐍 Getting Python executable...")
         if python_path is None:
             python_path = self.get_python_executable()
         
+        print(f"📦 Getting package path...")
         # Convert paths to strings for JSON serialization
         # Use forward slashes even on Windows for consistency
         python_str = str(Path(python_path)).replace('\\', '/')
         package_path = str(self.get_package_path().parent).replace('\\', '/')
         
+        print(f"🔧 Creating base config...")
         config = {
             "command": python_str,
             "args": ["-m", "mcp_visualization.server"],
@@ -135,6 +138,7 @@ class ClaudeDesktopConfigManager:
         
         # Only add database path if specified
         if database_path is not None:
+            print(f"💾 Setting up database at {database_path}...")
             # Ensure database directory exists
             database_path.parent.mkdir(parents=True, exist_ok=True)
             db_str = str(database_path).replace('\\', '/')
@@ -145,13 +149,20 @@ class ClaudeDesktopConfigManager:
             
             # Create sample database if requested
             if create_sample_db:
+                print(f"📊 Creating sample database...")
                 try:
                     from .database import create_sample_database
-                    create_sample_database(str(database_path))
-                    logger.info(f"Created sample database at {database_path}")
+                    actual_path = create_sample_database(str(database_path))
+                    logger.info(f"Created sample database at {actual_path}")
+                    print(f"✅ Created sample database with demo data")
                 except Exception as e:
-                    logger.warning(f"Could not create sample database: {e}")
+                    error_msg = f"Could not create sample database: {e}"
+                    logger.error(error_msg)
+                    print(f"❌ {error_msg}")
+                    # Don't fail the entire configuration for database issues
+                    # return False, error_msg
         else:
+            print(f"ℹ️  No database configured - users can connect via Claude Desktop")
             logger.info("No default database - users can connect to any database via Claude Desktop")
         
         logger.info(f"Created server config for {server_name}")
@@ -172,20 +183,25 @@ class ClaudeDesktopConfigManager:
             Tuple of (success: bool, message: str)
         """
         try:
+            print(f"📁 Creating config directory...")
             # Create config directory if needed
             self.create_config_directory()
             
+            print(f"💾 Creating backup...")
             # Backup existing config
             if backup and self.config_exists():
                 self.backup_config()
             
+            print(f"📖 Loading existing configuration...")
             # Load existing configuration
             config = self.load_existing_config()
             
+            print(f"🔍 Checking for existing server '{server_name}'...")
             # Check if server already exists
             if server_name in config["mcpServers"]:
                 return False, f"Server '{server_name}' already exists in configuration"
             
+            print(f"⚙️  Creating server configuration...")
             # Create server configuration
             server_config = self.create_server_config(
                 server_name=server_name,
@@ -193,9 +209,11 @@ class ClaudeDesktopConfigManager:
                 python_path=python_path
             )
             
+            print(f"➕ Adding server to configuration...")
             # Add server to configuration
             config["mcpServers"][server_name] = server_config
             
+            print(f"💾 Writing configuration file...")
             # Write updated configuration
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=2, ensure_ascii=False)
@@ -331,11 +349,19 @@ def configure_claude_desktop(server_name: str = "data-viz-server",
     Returns:
         Tuple of (success: bool, message: str)
     """
-    manager = ClaudeDesktopConfigManager()
-    
-    if force:
-        # Update existing configuration
-        return manager.update_mcp_server(server_name, database_path, python_path)
-    else:
-        # Add new configuration (fails if exists)
-        return manager.add_mcp_server(server_name, database_path, python_path)
+    try:
+        print(f"🔧 Initializing configuration manager...")
+        manager = ClaudeDesktopConfigManager()
+        
+        print(f"📝 Configuring server '{server_name}'...")
+        if force:
+            print("⚠️  Force mode: updating existing configuration")
+            return manager.update_mcp_server(server_name, database_path, python_path)
+        else:
+            print("➕ Adding new server configuration")
+            return manager.add_mcp_server(server_name, database_path, python_path)
+    except Exception as e:
+        error_msg = f"Configuration failed: {e}"
+        print(f"❌ {error_msg}")
+        logger.error(error_msg)
+        return False, error_msg

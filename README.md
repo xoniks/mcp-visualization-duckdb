@@ -20,7 +20,7 @@ Transform natural language into beautiful, interactive data visualizations using
 ### For End Users (Recommended)
 
 ```bash
-# 1. Install the package
+# 1. Install the package (includes DuckDB and all dependencies)
 pip install mcp-visualization-duckdb
 
 # 2. Configure Claude Desktop automatically
@@ -30,6 +30,8 @@ mcp-viz configure
 ```
 
 That's it! No manual configuration needed.
+
+> **Note**: DuckDB and all other dependencies are automatically installed with the package. No separate database installation required!
 
 ### What the installer does automatically:
 
