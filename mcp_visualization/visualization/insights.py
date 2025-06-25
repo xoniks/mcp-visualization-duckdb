@@ -8,10 +8,9 @@ import pandas as pd
 from typing import Dict, List, Any, Optional, Tuple
 from scipy import stats
 
-# REMOVED: from config.settings import get_insights_config
-# ADDED: Import config_manager and the relevant config types
-from config.settings import config_manager, InsightsConfig, Settings
-from visualization.chart_types import InsightType
+# Import config_manager and the relevant config types
+from ..config.settings import config_manager, InsightsConfig, Settings
+from .chart_types import InsightType
 
 logger = logging.getLogger(__name__)
 

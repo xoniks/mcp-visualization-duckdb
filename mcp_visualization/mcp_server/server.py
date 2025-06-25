@@ -15,16 +15,16 @@ from mcp.types import (
     ToolsCapability,
 )  # ✅ FIXED: Correct import name
 
-# ✅ FIXED: Import the config_manager and the specific config types for type hinting
-from config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
-from database.manager import DatabaseManager
-from llm.simple_fallback import SimpleFallbackClient
-from visualization.chart_generator import ChartGenerator
-from visualization.chart_types import ChartType, InsightType, chart_registry
-from utils.logger import setup_logging
-from mcp_server.tools import ToolRegistry
-from mcp_server.handlers import RequestHandler
-from mcp_server.types import VisualizationRequest
+# Import the config_manager and the specific config types for type hinting
+from ..config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
+from ..database.manager import DatabaseManager
+from ..llm.simple_fallback import SimpleFallbackClient
+from ..visualization.chart_generator import ChartGenerator
+from ..visualization.chart_types import ChartType, InsightType, chart_registry
+from ..utils.logger import setup_logging
+from .tools import ToolRegistry
+from .handlers import RequestHandler
+from .types import VisualizationRequest
 
 logger = logging.getLogger(__name__)
 

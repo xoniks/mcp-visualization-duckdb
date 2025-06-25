@@ -7,9 +7,9 @@ import json
 from typing import Dict, List, Any, Optional
 from mcp.types import TextContent
 
-from visualization.chart_types import ChartType, InsightType, chart_registry
-from database.queries import QueryFilter
-from mcp_server.types import VisualizationRequest
+from ..visualization.chart_types import ChartType, InsightType, chart_registry
+from ..database.queries import QueryFilter
+from .types import VisualizationRequest
 
 logger = logging.getLogger(__name__)
 

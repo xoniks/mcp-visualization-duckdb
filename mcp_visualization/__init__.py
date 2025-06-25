@@ -4,7 +4,7 @@ MCP Data Visualization Server
 Transform natural language into beautiful data visualizations using Claude Desktop and DuckDB.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.0.2"
 __author__ = "MCP Visualization Contributors"
 __email__ = "support@example.com"
 

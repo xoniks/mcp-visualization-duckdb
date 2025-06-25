@@ -106,13 +106,33 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
             console.print("📁 Configuration Options:")
             
             if not db_path:
-                default_db = manager.get_default_database_path()
-                custom_db = Prompt.ask(
-                    f"Database path", 
-                    default=str(default_db),
-                    show_default=True
+                console.print("\n💾 Database Setup Options:")
+                console.print("   1. Create sample database with demo data ✅ (recommended for first-time users)")
+                console.print("   2. No default database - connect to existing databases via Claude Desktop")
+                console.print("   3. Custom database path")
+                
+                choice = Prompt.ask(
+                    "Choose database setup", 
+                    choices=["1", "2", "3"],
+                    default="1"
                 )
-                db_path = Path(custom_db) if custom_db != str(default_db) else default_db
+                
+                if choice == "1":
+                    # Create sample database
+                    db_path = manager.get_default_database_path()
+                    create_sample = True
+                elif choice == "2":
+                    # No default database
+                    db_path = None
+                    create_sample = False
+                elif choice == "3":
+                    # Custom path
+                    custom_db = Prompt.ask("Enter database path")
+                    db_path = Path(custom_db)
+                    create_sample = Confirm.ask("Create sample data in this database?", default=True)
+                else:
+                    db_path = manager.get_default_database_path()
+                    create_sample = True
             
             if not py_path:
                 default_python = manager.get_python_executable()
@@ -130,7 +150,11 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
             preview_table.add_column("Value", style="white")
             
             preview_table.add_row("Server Name", server_name)
-            preview_table.add_row("Database Path", str(db_path))
+            if db_path:
+                preview_table.add_row("Database Path", str(db_path))
+                preview_table.add_row("Sample Data", "Yes" if create_sample else "No")
+            else:
+                preview_table.add_row("Database Path", "None (connect via Claude Desktop)")
             preview_table.add_row("Python Path", str(py_path))
             preview_table.add_row("Config File", str(manager.config_path))
             

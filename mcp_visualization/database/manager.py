@@ -8,8 +8,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import duckdb
 import pandas as pd
 
-# ✅ FIXED: Import the settings and config functions properly
-from code.config.settings import (
+# Import the settings and config functions properly
+from ..config.settings import (
     get_server_config,
     get_database_config,
     DatabaseConfig,
@@ -19,8 +19,8 @@ from code.config.settings import (
     InsightsConfig,
 )
 
-from code.utils.validators import validate_sql_query
-from code.database.queries import QueryBuilder
+from ..utils.validators import validate_sql_query
+from .queries import QueryBuilder
 
 logger = logging.getLogger(__name__)
 

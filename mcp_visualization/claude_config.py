@@ -83,39 +83,60 @@ class ClaudeDesktopConfigManager:
         """Get default database path in user's home directory"""
         return Path.home() / '.mcp-visualization' / 'data.duckdb'
     
+    def get_suggested_database_paths(self) -> list[Path]:
+        """Get suggested database locations for user to choose from"""
+        suggestions = [
+            self.get_default_database_path(),
+            Path.home() / 'Documents' / 'mcp-viz.duckdb',
+            Path.home() / 'Desktop' / 'data.duckdb',
+            Path.cwd() / 'data.duckdb',
+        ]
+        return suggestions
+    
     def create_server_config(self, 
                            server_name: str = "data-viz-server",
                            database_path: Optional[Path] = None,
-                           python_path: Optional[str] = None) -> Dict[str, Any]:
+                           python_path: Optional[str] = None,
+                           create_sample_db: bool = True) -> Dict[str, Any]:
         """Create MCP server configuration for Claude Desktop"""
         
         if python_path is None:
             python_path = self.get_python_executable()
         
-        if database_path is None:
-            database_path = self.get_default_database_path()
-            
-        # Ensure database directory exists
-        database_path.parent.mkdir(parents=True, exist_ok=True)
-        
         # Convert paths to strings for JSON serialization
         # Use forward slashes even on Windows for consistency
         python_str = str(Path(python_path)).replace('\\', '/')
-        db_str = str(database_path).replace('\\', '/')
         package_path = str(self.get_package_path().parent).replace('\\', '/')
         
         config = {
             "command": python_str,
             "args": ["-m", "mcp_visualization.server"],
             "cwd": package_path,
-            "env": {
+        }
+        
+        # Only add database path if specified
+        if database_path is not None:
+            # Ensure database directory exists
+            database_path.parent.mkdir(parents=True, exist_ok=True)
+            db_str = str(database_path).replace('\\', '/')
+            config["env"] = {
                 "DUCKDB_DATABASE_PATH": db_str
             }
-        }
+            logger.debug(f"Database: {db_str}")
+            
+            # Create sample database if requested
+            if create_sample_db:
+                try:
+                    from .database import create_sample_database
+                    create_sample_database(str(database_path))
+                    logger.info(f"Created sample database at {database_path}")
+                except Exception as e:
+                    logger.warning(f"Could not create sample database: {e}")
+        else:
+            logger.info("No default database - users can connect to any database via Claude Desktop")
         
         logger.info(f"Created server config for {server_name}")
         logger.debug(f"Python: {python_str}")
-        logger.debug(f"Database: {db_str}")
         logger.debug(f"Working dir: {package_path}")
         
         return config

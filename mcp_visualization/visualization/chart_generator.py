@@ -10,14 +10,14 @@ import plotly.io as pio
 from typing import Dict, List, Any, Optional, Tuple
 import numpy as np
 
-from visualization.chart_types import ChartType
-from visualization.insights import InsightsCalculator, InsightType
+from .chart_types import ChartType
+from .insights import InsightsCalculator, InsightType
 
-# ✅ Import the config_manager instance directly
-from config.settings import config_manager
+# Import the config_manager instance directly
+from ..config.settings import config_manager
 
-# ✅ OPTIONAL: Import specific config types for type hinting
-from config.settings import VisualizationConfig
+# Import specific config types for type hinting
+from ..config.settings import VisualizationConfig
 
 
 logger = logging.getLogger(__name__)
