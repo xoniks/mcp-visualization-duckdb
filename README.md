@@ -7,19 +7,19 @@ Transform natural language into beautiful, interactive data visualizations using
 - 🗣️ **Natural Language Interface** - Chat with Claude to describe what you want to visualize
 - 📊 **Interactive Charts** - Generate HTML widgets with Plotly for rich, interactive visualizations  
 - 🗃️ **Flexible Database Management** - Easy database switching with interactive browser
-- 🧠 **Local LLM** - Privacy-focused processing with Ollama integration
+- 🧠 **Rule-Based Analysis** - Smart chart suggestions without external LLM dependencies
 - 📈 **Multiple Chart Types** - Bar, line, scatter, pie, histogram, box plots, heatmaps, and area charts
 - 🔍 **Smart Insights** - Automatic statistical analysis and pattern detection
 - 🔧 **Modular Design** - Clean, extensible architecture with comprehensive configuration
 - 🛡️ **Security First** - SQL injection protection and input validation
 - 🎮 **Claude Desktop Integration** - Seamless experience through Claude's interface
+- ⚡ **No External Dependencies** - Works entirely offline with Claude Desktop
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.8+
-- [Ollama](https://ollama.ai/) installed and running
 - [Claude Desktop](https://claude.ai/download) installed
 
 ### Installation
@@ -30,8 +30,8 @@ git clone <repository-url>
 cd mcp-visualization-duckdb
 python -m venv .venv
 
-# Windows (Git Bash)
-source .venv/Scripts/activate
+# Windows (Git Bash/PowerShell)
+.venv\Scripts\activate
 
 # Linux/Mac
 source .venv/bin/activate
@@ -39,75 +39,181 @@ source .venv/bin/activate
 
 2. **Install dependencies:**
 ```bash
-pip install mcp duckdb pandas matplotlib seaborn plotly pydantic pydantic-settings pyyaml rich requests ollama numpy scikit-learn
+pip install -r requirements.txt
 ```
 
-3. **Install and start Ollama:**
-```bash
-# Install Ollama
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Start Ollama service
-ollama serve
-
-# Pull a lightweight model (in another terminal)
-ollama pull qwen2:0.5b
-```
-
-4. **Configure Claude Desktop:**
+3. **Configure Claude Desktop:**
 
 Add to your Claude Desktop configuration file:
 
 **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`  
-**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Linux:** `~/.config/claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "data-viz-server": {
-      "command": "C:/Github/mcp-visualization-duckdb/.venv/Scripts/python.exe",
-      "args": ["C:/Github/mcp-visualization-duckdb/mcp_server.py"],
-      "cwd": "C:/Github/mcp-visualization-duckdb",
+      "command": "python",
+      "args": ["-m", "code.main"],
+      "cwd": "/path/to/mcp-visualization-duckdb",
       "env": {
-        "DUCKDB_DATABASE_PATH": "C:/Github/mcp-visualization-duckdb/data/mcp.duckdb",
-        "PYTHONIOENCODING": "utf-8"
+        "DUCKDB_DATABASE_PATH": "/path/to/mcp-visualization-duckdb/data/mcp.duckdb"
       }
     }
   }
 }
 ```
 
-5. **Create the launcher script:**
-```bash
-# Create mcp_server.py in your project root
-cat > mcp_server.py << 'EOF'
-#!/usr/bin/env python3
-import sys
-import os
-import asyncio
-from pathlib import Path
+**Example configurations:**
 
-# Add project root to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
-
-# Set environment variables
-os.environ.setdefault("DUCKDB_DATABASE_PATH", str(project_root / "data" / "mcp.duckdb"))
-
-async def main():
-    try:
-        from code.main import main as code_main
-        return await code_main()
-    except Exception as e:
-        print(f"Server error: {e}", file=sys.stderr)
-        return 1
-
-if __name__ == "__main__":
-    sys.exit(asyncio.run(main()) or 0)
-EOF
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "C:\\path\\to\\mcp-visualization-duckdb\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "code.main"],
+      "cwd": "C:\\path\\to\\mcp-visualization-duckdb",
+      "env": {
+        "DUCKDB_DATABASE_PATH": "C:\\path\\to\\mcp-visualization-duckdb\\data\\mcp.duckdb"
+      }
+    }
+  }
+}
 ```
 
-6. **Restart Claude Desktop** and start chatting!
+**Mac/Linux:**
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "/path/to/mcp-visualization-duckdb/.venv/bin/python",
+      "args": ["-m", "code.main"],
+      "cwd": "/path/to/mcp-visualization-duckdb",
+      "env": {
+        "DUCKDB_DATABASE_PATH": "/path/to/mcp-visualization-duckdb/data/mcp.duckdb"
+      }
+    }
+  }
+}
+```
+
+4. **Restart Claude Desktop** and start chatting!
+
+## 🔧 Detailed Claude Desktop Setup
+
+### Step-by-Step Configuration
+
+1. **Find your Claude Desktop config file:**
+   - **Windows:** Open Run (Win+R), type `%APPDATA%\Claude`, create `claude_desktop_config.json` if it doesn't exist
+   - **Mac:** Open Finder, press Cmd+Shift+G, go to `~/Library/Application Support/Claude/`
+   - **Linux:** Navigate to `~/.config/claude/`
+
+2. **Edit the configuration file:**
+   ```json
+   {
+     "mcpServers": {
+       "data-viz-server": {
+         "command": "/absolute/path/to/your/python",
+         "args": ["-m", "code.main"],
+         "cwd": "/absolute/path/to/mcp-visualization-duckdb",
+         "env": {
+           "DUCKDB_DATABASE_PATH": "/absolute/path/to/mcp-visualization-duckdb/data/mcp.duckdb"
+         }
+       }
+     }
+   }
+   ```
+
+3. **Find your Python path:**
+   ```bash
+   # With virtual environment activated
+   which python    # Linux/Mac
+   where python    # Windows
+   ```
+
+4. **Verify your configuration:**
+   - All paths must be absolute (no relative paths like `./` or `../`)
+   - Use forward slashes `/` even on Windows in JSON
+   - Ensure your virtual environment Python path is correct
+   - Double-check the working directory path
+
+### Example Real Configurations
+
+**Windows Example:**
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "C:/Users/YourName/Projects/mcp-visualization-duckdb/.venv/Scripts/python.exe",
+      "args": ["-m", "code.main"],
+      "cwd": "C:/Users/YourName/Projects/mcp-visualization-duckdb",
+      "env": {
+        "DUCKDB_DATABASE_PATH": "C:/Users/YourName/Projects/mcp-visualization-duckdb/data/mcp.duckdb"
+      }
+    }
+  }
+}
+```
+
+**Mac Example:**
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "/Users/yourname/Projects/mcp-visualization-duckdb/.venv/bin/python",
+      "args": ["-m", "code.main"],
+      "cwd": "/Users/yourname/Projects/mcp-visualization-duckdb",
+      "env": {
+        "DUCKDB_DATABASE_PATH": "/Users/yourname/Projects/mcp-visualization-duckdb/data/mcp.duckdb"
+      }
+    }
+  }
+}
+```
+
+**Linux Example:**
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "/home/yourname/Projects/mcp-visualization-duckdb/.venv/bin/python",
+      "args": ["-m", "code.main"],
+      "cwd": "/home/yourname/Projects/mcp-visualization-duckdb",
+      "env": {
+        "DUCKDB_DATABASE_PATH": "/home/yourname/Projects/mcp-visualization-duckdb/data/mcp.duckdb"
+      }
+    }
+  }
+}
+```
+
+### Testing Your Setup
+
+1. **Test the server manually:**
+   ```bash
+   # Navigate to your project directory
+   cd /path/to/mcp-visualization-duckdb
+   
+   # Activate virtual environment
+   source .venv/bin/activate  # Linux/Mac
+   .venv\Scripts\activate     # Windows
+   
+   # Test the server
+   python -m code.main
+   ```
+
+2. **Check Claude Desktop connection:**
+   - Restart Claude Desktop completely
+   - Open a new conversation
+   - Type: "What MCP servers are available?"
+   - You should see "data-viz-server" in the response
+
+3. **Verify tools are working:**
+   - Ask: "List available tables"
+   - Ask: "What's the server status?"
+   - These should return proper responses, not "Unknown tool" errors
 
 ## 🎮 Usage with Claude Desktop
 
@@ -223,7 +329,6 @@ The server uses a layered configuration system:
 
 ```bash
 export DUCKDB_DATABASE_PATH="C:/path/to/your/database.duckdb"
-export OLLAMA_MODEL="qwen2:0.5b"
 export DEBUG_MODE="true"
 export LOG_LEVEL="INFO"
 ```
@@ -237,12 +342,9 @@ database:
   memory_limit: "1GB"
   threads: 4
 
-# LLM settings  
+# LLM settings (disabled - using rule-based analysis)
 llm:
-  ollama:
-    model: "qwen2:0.5b"
-    base_url: "http://localhost:11434"
-    timeout: 30
+  provider: "disabled"
 
 # Visualization settings
 visualization:
@@ -259,7 +361,7 @@ mcp-visualization-duckdb/
 ├── code/
 │   ├── config/          # Configuration management
 │   ├── database/        # DuckDB operations and queries  
-│   ├── llm/             # Ollama client and prompts
+│   ├── llm/             # Rule-based chart analysis
 │   ├── visualization/   # Chart generation and insights
 │   ├── mcp_server/      # MCP protocol implementation
 │   ├── utils/           # Logging and validation utilities
@@ -330,16 +432,17 @@ python -c "from code.database.manager import DatabaseManager; dm = DatabaseManag
 
 ### Common Issues
 
-**Ollama Connection Failed:**
+**Python Environment Issues:**
 ```bash
-# Make sure Ollama is running
-ollama serve
+# Ensure virtual environment is activated
+source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate     # Windows
 
-# Check if model is available
-ollama list
+# Verify dependencies are installed
+pip install -r requirements.txt
 
-# Pull required model if missing
-ollama pull qwen2:0.5b
+# Check Python path in Claude Desktop config
+which python  # Should match your config path
 ```
 
 **Database Lock Errors:**
@@ -372,8 +475,8 @@ python -m code.main
 # Test database
 python -c "from code.database.manager import DatabaseManager; print('DB ✅')"
 
-# Test LLM  
-python -c "from code.llm.ollama_client import OllamaClient; print('LLM ✅')"
+# Test LLM fallback
+python -c "from code.llm.simple_fallback import SimpleFallbackClient; print('LLM ✅')"
 
 # Test charts
 python -c "from code.visualization.chart_generator import ChartGenerator; print('Charts ✅')"
@@ -441,7 +544,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [Model Context Protocol](https://github.com/anthropics/mcp) by Anthropic
 - [DuckDB](https://duckdb.org/) for fast analytical processing
-- [Ollama](https://ollama.ai/) for local LLM capabilities
 - [Plotly](https://plotly.com/) for interactive visualizations
 - [Claude Desktop](https://claude.ai/) for the amazing AI interface
 

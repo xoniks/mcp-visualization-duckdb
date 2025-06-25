@@ -43,9 +43,9 @@ def print_startup_banner():
 ==============================================================
            MCP Data Visualization Server v1.0.0            
                                                             
-         Transform natural language into beautiful charts   
+         Transform data requests into beautiful charts   
          * DuckDB for fast local analytics                  
-         * Ollama for natural language processing           
+         * Rule-based chart analysis (no external LLM)     
          * Plotly for interactive visualizations            
 ==============================================================
 """
@@ -70,26 +70,20 @@ def check_dependencies():
         return False
 
 
-async def check_ollama_connection():
-    """Check Ollama connection"""
+async def check_llm_setup():
+    """Check LLM setup - using simple fallback"""
     try:
-        from llm.ollama_client import OllamaClient
+        from llm.simple_fallback import SimpleFallbackClient
 
-        client = OllamaClient()
-        is_connected = await client.check_connection()
+        client = SimpleFallbackClient()
+        is_ready = await client.check_connection()
 
-        if is_connected:
-            # Only use stderr for output to avoid MCP protocol interference
-            print("✓ Ollama connected - Model available", file=sys.stderr)
-        else:
-            print(
-                "⚠ Ollama connection failed - will use fallback methods",
-                file=sys.stderr,
-            )
-
-        return is_connected
+        if is_ready:
+            print("✓ Rule-based chart analysis ready (no external LLM needed)", file=sys.stderr)
+        
+        return is_ready
     except Exception as e:
-        print(f"✗ Ollama check failed: {e}", file=sys.stderr)
+        print(f"✗ LLM setup check failed: {e}", file=sys.stderr)
         return False
 
 
@@ -128,8 +122,8 @@ async def main():
     if not check_dependencies():
         logger.warning("Some dependencies may be missing")
 
-    # Check Ollama connection
-    await check_ollama_connection()
+    # Check LLM setup
+    await check_llm_setup()
 
     # Get server configuration
     try:

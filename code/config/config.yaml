@@ -16,8 +16,8 @@ database__settings__memory_limit: "1GB"
 database__settings__threads: 4
 database__settings__enable_extensions: true
 
-# LLM Configuration
-llm__provider: "ollama"
+# LLM Configuration - Disabled (Use Claude Desktop instead) 
+llm__provider: "disabled"
 llm__ollama__base_url: "http://localhost:11434"
 llm__ollama__model: "qwen2:0.5b"
 llm__ollama__timeout: 30

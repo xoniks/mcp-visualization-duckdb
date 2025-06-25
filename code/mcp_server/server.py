@@ -18,7 +18,7 @@ from mcp.types import (
 # ✅ FIXED: Import the config_manager and the specific config types for type hinting
 from config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
 from database.manager import DatabaseManager
-from llm.ollama_client import OllamaClient
+from llm.simple_fallback import SimpleFallbackClient
 from visualization.chart_generator import ChartGenerator
 from visualization.chart_types import ChartType, InsightType, chart_registry
 from utils.logger import setup_logging
@@ -44,7 +44,7 @@ class DataVisualizationMCPServer:
 
         # Initialize components (these will now implicitly use config_manager internally)
         self.db_manager: Optional[DatabaseManager] = None
-        self.llm_client: Optional[OllamaClient] = None
+        self.llm_client: Optional[SimpleFallbackClient] = None
         self.chart_generator: Optional[ChartGenerator] = None
         self.tool_registry: Optional[ToolRegistry] = None
         self.request_handler: Optional[RequestHandler] = None
@@ -69,17 +69,12 @@ class DataVisualizationMCPServer:
             self.db_manager = DatabaseManager()
             logger.info("Database manager initialized")
 
-            # Initialize LLM client (it will get config from config_manager itself)
-            self.llm_client = OllamaClient()
-
-            # Check LLM connection
-            ollama_connected = await self.llm_client.check_connection()
-            if ollama_connected:
-                logger.info("LLM client connected successfully")
-            else:
-                logger.warning(
-                    "LLM client connection failed - will use fallback methods"
-                )
+            # Initialize simple fallback client (no external LLM needed)
+            self.llm_client = SimpleFallbackClient()
+            
+            # Check connection (always succeeds for fallback)
+            fallback_ready = await self.llm_client.check_connection()
+            logger.info("Using rule-based fallback for chart analysis (no external LLM required)")
 
             # Initialize chart generator (it will get config from config_manager itself)
             self.chart_generator = ChartGenerator()
@@ -110,7 +105,7 @@ class DataVisualizationMCPServer:
                 f"🗃️ Database: {self.db_manager.db_path if self.db_manager and hasattr(self.db_manager, 'db_path') else 'Not initialized'}"
             )
             print(
-                f"🧠 LLM: {'Ollama integration enabled' if ollama_connected else 'Ollama connection failed, using fallback'}"
+                f"🧠 LLM: Rule-based chart analysis (no external LLM needed)"
             )
             print(f"📈 Charts: Plotly HTML widgets")
             # ✅ Access the nested generate_on_startup attribute
