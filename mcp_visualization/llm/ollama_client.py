@@ -9,13 +9,13 @@ import logging
 from typing import Dict, List, Any, Optional, Union
 import httpx
 
-# ✅ Import the config_manager instance directly
+# SUCCESS Import the config_manager instance directly
 from config.settings import config_manager
 
-# ✅ OPTIONAL: Import specific config types for type hinting
+# SUCCESS OPTIONAL: Import specific config types for type hinting
 from config.settings import OllamaConfig, LLMPromptsConfig
 
-# ❌ The following import needs to be adjusted.
+# ERROR The following import needs to be adjusted.
 # Assuming 'prompts.py' is in the same directory (llm)
 # and PromptManager will now take the prompts config directly.
 # If PromptManager is a standalone class that loads its own prompts,
@@ -32,11 +32,11 @@ class OllamaClient:
     """Client for interacting with local Ollama LLM"""
 
     def __init__(self):
-        # ✅ Get the full settings object from the global config_manager
+        # SUCCESS Get the full settings object from the global config_manager
         self.settings = config_manager.get_settings()
-        # ✅ Access the specific Ollama configuration section
+        # SUCCESS Access the specific Ollama configuration section
         self.ollama_config: OllamaConfig = self.settings.llm.ollama
-        # ✅ Pass the prompts configuration to PromptManager
+        # SUCCESS Pass the prompts configuration to PromptManager
         self.prompt_manager = PromptManager(self.settings.llm.prompts)
         self.client: Optional[httpx.AsyncClient] = None
 
@@ -364,6 +364,6 @@ class OllamaClient:
 # Convenience function for one-off requests
 async def quick_generate(prompt: str, model: Optional[str] = None) -> str:
     """Quick generation without context management"""
-    # ✅ Instantiate OllamaClient directly. It will get its config from config_manager.
+    # SUCCESS Instantiate OllamaClient directly. It will get its config from config_manager.
     async with OllamaClient() as client:
         return await client.generate(prompt, model)

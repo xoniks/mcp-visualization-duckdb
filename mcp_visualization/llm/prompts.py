@@ -7,7 +7,7 @@ import logging
 from typing import Dict, List, Any, Optional
 import json
 
-# ✅ Import the LLMPromptsConfig type
+# SUCCESS Import the LLMPromptsConfig type
 from config.settings import LLMPromptsConfig
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class PromptManager:
     """Manages prompt templates for different LLM tasks, loaded from config"""
 
-    def __init__(self, prompts_config: LLMPromptsConfig):  # ✅ Accept prompts_config
+    def __init__(self, prompts_config: LLMPromptsConfig):  # SUCCESS Accept prompts_config
         self.prompts_config = prompts_config
         # Self.templates will now be populated from prompts_config
         self.templates = {

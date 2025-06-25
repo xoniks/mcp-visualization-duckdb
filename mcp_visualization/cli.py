@@ -21,7 +21,7 @@ console = Console()
 def print_banner():
     """Print welcome banner"""
     banner = """
-🎯 MCP Data Visualization Server
+Target MCP Data Visualization Server
 Transform natural language into beautiful charts with Claude Desktop
 """
     console.print(Panel(banner, style="bold blue"))
@@ -29,22 +29,22 @@ Transform natural language into beautiful charts with Claude Desktop
 
 def print_success(message: str):
     """Print success message"""
-    console.print(f"✅ {message}", style="bold green")
+    console.print(f"SUCCESS {message}", style="bold green")
 
 
 def print_error(message: str):
     """Print error message"""
-    console.print(f"❌ {message}", style="bold red")
+    console.print(f"ERROR {message}", style="bold red")
 
 
 def print_warning(message: str):
     """Print warning message"""
-    console.print(f"⚠️  {message}", style="bold yellow")
+    console.print(f"WARNING  {message}", style="bold yellow")
 
 
 def print_info(message: str):
     """Print info message"""
-    console.print(f"ℹ️  {message}", style="cyan")
+    console.print(f"INFO  {message}", style="cyan")
 
 
 @click.group()
@@ -66,14 +66,14 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
     
     if not auto:
         print_banner()
-        console.print("🔧 Setting up Claude Desktop integration...\n")
+        console.print("Config Setting up Claude Desktop integration...\n")
     
     try:
         manager = ClaudeDesktopConfigManager()
         
         # Show current status
         if not auto:
-            console.print("📋 Current Configuration Status:")
+            console.print("INFO Current Configuration Status:")
             status = manager.get_status()
             
             table = Table()
@@ -82,8 +82,8 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
             
             table.add_row("Platform", status["platform"])
             table.add_row("Config Path", status["config_path"])
-            table.add_row("Config Exists", "✅ Yes" if status["config_exists"] else "❌ No")
-            table.add_row("Config Valid", "✅ Yes" if status["config_valid"] else "❌ No")
+            table.add_row("Config Exists", "SUCCESS Yes" if status["config_exists"] else "ERROR No")
+            table.add_row("Config Valid", "SUCCESS Yes" if status["config_valid"] else "ERROR No")
             table.add_row("Existing Servers", ", ".join(status["servers"]) if status["servers"] else "None")
             
             console.print(table)
@@ -93,97 +93,33 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
         db_path = Path(database_path) if database_path else None
         py_path = python_path
         
-        # Interactive configuration (if not auto)
-        if not auto:
-            if not force and server_name in manager.list_mcp_servers():
-                print_warning(f"Server '{server_name}' already exists!")
-                if not Confirm.ask("Do you want to update the existing configuration?"):
-                    console.print("Configuration cancelled.")
-                    return
-                force = True
-            
-            # Ask for custom paths
-            console.print("📁 Configuration Options:")
-            
-            if not db_path:
-                console.print("\n💾 Database Setup Options:")
-                console.print("   1. Create sample database with demo data ✅ (recommended for first-time users)")
-                console.print("   2. No default database - connect to existing databases via Claude Desktop")
-                console.print("   3. Custom database path")
-                
-                choice = Prompt.ask(
-                    "Choose database setup", 
-                    choices=["1", "2", "3"],
-                    default="1"
-                )
-                
-                if choice == "1":
-                    # Create sample database
-                    db_path = manager.get_default_database_path()
-                    create_sample = True
-                elif choice == "2":
-                    # No default database
-                    db_path = None
-                    create_sample = False
-                elif choice == "3":
-                    # Custom path
-                    custom_db = Prompt.ask("Enter database path")
-                    db_path = Path(custom_db)
-                    create_sample = Confirm.ask("Create sample data in this database?", default=True)
-                else:
-                    db_path = manager.get_default_database_path()
-                    create_sample = True
-            
-            if not py_path:
-                default_python = manager.get_python_executable()
-                while True:
-                    custom_python = Prompt.ask(
-                        "Python executable [press Enter for default]",
-                        default=default_python,
-                        show_default=True
-                    )
-                    
-                    if manager.validate_python_path(custom_python):
-                        py_path = custom_python
-                        break
-                    else:
-                        print_error(f"Invalid Python path: {custom_python}")
-                        print_info("Please enter a valid Python executable path")
-                        print_info(f"Example: {default_python}")
-                        # Show common Python locations on Windows
-                        if sys.platform == "win32":
-                            print_info("Common locations:")
-                            print_info("  - C:\\Python310\\python.exe")
-                            print_info("  - C:\\Users\\YourName\\AppData\\Local\\Programs\\Python\\Python310\\python.exe")
-                            print_info("  - python (if in PATH)")
-                        
-                        if not Confirm.ask("Try again?", default=True):
-                            console.print("Configuration cancelled.")
-                            return
-            
-            # Show configuration preview
-            console.print("\n📝 Configuration Preview:")
-            preview_table = Table()
-            preview_table.add_column("Setting", style="cyan")
-            preview_table.add_column("Value", style="white")
-            
-            preview_table.add_row("Server Name", server_name)
-            if db_path:
-                preview_table.add_row("Database Path", str(db_path))
-                preview_table.add_row("Sample Data", "Yes" if create_sample else "No")
-            else:
-                preview_table.add_row("Database Path", "None (connect via Claude Desktop)")
-            preview_table.add_row("Python Path", str(py_path))
-            preview_table.add_row("Config File", str(manager.config_path))
-            
-            console.print(preview_table)
-            
-            if not Confirm.ask("\nProceed with configuration?", default=True):
+        # Auto configuration - no prompts needed
+        console.print("Auto-configuring MCP server...")
+        
+        # Use default Python executable  
+        if not py_path:
+            py_path = manager.get_python_executable()
+        console.print(f"Using Python: {py_path}")
+        
+        # Skip database setup (no database needed)
+        db_path = None
+        create_sample = False
+        console.print("Database-free mode (connect databases via Claude Desktop)")
+        
+        # Show simple configuration summary
+        console.print(f"Server name: {server_name}")
+        console.print(f"Config file: {manager.config_path}")
+        
+        # Check for existing server and handle gracefully
+        if not force and server_name in manager.list_mcp_servers():
+            print_warning(f"Server '{server_name}' already exists!")
+            if not Confirm.ask("Do you want to update the existing configuration?"):
                 console.print("Configuration cancelled.")
                 return
+            force = True
         
         # Apply configuration
-        console.print("\n🚀 Applying configuration...")
+        console.print("\nApplying configuration...")
         
         success, message = configure_claude_desktop(
             server_name=server_name,
@@ -195,13 +131,16 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
         if success:
             print_success(message)
             console.print()
-            console.print("🔄 Next steps:")
+            console.print("[bold green]Next steps:[/bold green]")
             console.print("   1. Restart Claude Desktop completely")
             console.print("   2. Open a new conversation")
             console.print("   3. Try: 'What MCP servers are available?'")
-            console.print("   4. Try: 'List available tables'")
+            console.print("   4. Try: 'Browse databases in downloads'")
+            console.print("   5. Try: 'Load database from downloads and create a chart'")
+            console.print("   6. Try: 'Show me available visualization tools'")
             console.print()
-            print_info("Your MCP Data Visualization Server is ready! 🎉")
+            console.print("[bold cyan]Your MCP Data Visualization Server is ready![/bold cyan]")
+            console.print("[dim]Database files in Downloads folder can now be easily browsed and loaded![/dim]")
         else:
             print_error(message)
             sys.exit(1)
@@ -257,37 +196,37 @@ def remove(server_name: str):
 def status():
     """Show configuration status"""
     
-    console.print("📊 MCP Data Visualization Server Status\n")
+    console.print("CHART MCP Data Visualization Server Status\n")
     
     try:
         manager = ClaudeDesktopConfigManager()
         status = manager.get_status()
         
         # Platform info
-        console.print("🖥️  Platform Information:")
+        console.print("COMPUTER  Platform Information:")
         platform_table = Table()
         platform_table.add_column("Setting", style="cyan")
         platform_table.add_column("Value", style="white")
         
         platform_table.add_row("Operating System", status["platform"])
         platform_table.add_row("Config Path", status["config_path"])
-        platform_table.add_row("Config Directory", "✅ Exists" if status["config_directory_exists"] else "❌ Missing")
-        platform_table.add_row("Config File", "✅ Exists" if status["config_exists"] else "❌ Missing")
+        platform_table.add_row("Config Directory", "SUCCESS Exists" if status["config_directory_exists"] else "ERROR Missing")
+        platform_table.add_row("Config File", "SUCCESS Exists" if status["config_exists"] else "ERROR Missing")
         
         console.print(platform_table)
         console.print()
         
         # Configuration validation
-        console.print("🔍 Configuration Validation:")
+        console.print("SEARCH Configuration Validation:")
         if status["config_exists"]:
-            valid_icon = "✅" if status["config_valid"] else "❌"
+            valid_icon = "SUCCESS" if status["config_valid"] else "ERROR"
             console.print(f"{valid_icon} {status['validation_message']}")
         else:
-            console.print("❌ Configuration file does not exist")
+            console.print("ERROR Configuration file does not exist")
         console.print()
         
         # MCP servers
-        console.print("🔧 Configured MCP Servers:")
+        console.print("Config Configured MCP Servers:")
         if status["servers"]:
             for i, server in enumerate(status["servers"], 1):
                 console.print(f"  {i}. {server}")
@@ -327,15 +266,15 @@ def test():
         try:
             console.print(f"Running: {test_name}... ", end="")
             test_func()
-            console.print("✅ PASS", style="bold green")
+            console.print("SUCCESS PASS", style="bold green")
             passed += 1
         except Exception as e:
-            console.print("❌ FAIL", style="bold red")
+            console.print("ERROR FAIL", style="bold red")
             console.print(f"  Error: {e}")
     
     console.print()
     if passed == total:
-        print_success(f"All {total} tests passed! 🎉")
+        print_success(f"All {total} tests passed! COMPLETE")
     else:
         print_warning(f"{passed}/{total} tests passed")
         if passed < total:
@@ -354,10 +293,10 @@ def list_servers():
             print_info("No MCP servers configured")
             return
         
-        console.print("🔧 Configured MCP Servers:\n")
+        console.print("Config Configured MCP Servers:\n")
         
         for name, config in servers.items():
-            console.print(f"📦 [bold]{name}[/bold]")
+            console.print(f"PACKAGE [bold]{name}[/bold]")
             console.print(f"   Command: {config.get('command', 'N/A')}")
             console.print(f"   Args: {' '.join(config.get('args', []))}")
             console.print(f"   Working Dir: {config.get('cwd', 'N/A')}")
@@ -378,7 +317,7 @@ def list_servers():
 def create_db(path: Optional[str]):
     """Create a new DuckDB database with sample data"""
     
-    console.print("🗃️  Creating new database with sample data...\n")
+    console.print("Database  Creating new database with sample data...\n")
     
     try:
         from .database import create_sample_database

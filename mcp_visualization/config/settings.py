@@ -46,7 +46,7 @@ class ConnectionConfig(BaseSettings):
             # This is definitely the system PATH, override it
             self.path = PROJECT_ROOT / "data" / "mcp.duckdb"
             print(
-                f"⚠️  Detected system PATH in database config, overriding to: {self.path}"
+                f"WARNING  Detected system PATH in database config, overriding to: {self.path}"
             )
 
         # Ensure it's an absolute path
@@ -57,8 +57,8 @@ class ConnectionConfig(BaseSettings):
         if str(self.path) != ":memory:":
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
-        print(f"✅ Database path: {self.path}")
-        print(f"✅ Database directory exists: {self.path.parent.exists()}")
+        print(f"SUCCESS Database path: {self.path}")
+        print(f"SUCCESS Database directory exists: {self.path.parent.exists()}")
 
 
 class DatabaseSettings(BaseSettings):
@@ -508,7 +508,7 @@ class ConfigManager:
                             PROJECT_ROOT / "data" / "mcp.duckdb"
                         )
                     print(
-                        f"⚠️  Overrode invalid database path to: {self._settings.database.connection.path}"
+                        f"WARNING  Overrode invalid database path to: {self._settings.database.connection.path}"
                     )
 
                 _config_manager_logger.info(

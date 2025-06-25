@@ -24,6 +24,55 @@ class ToolRegistry:
 
     def _define_tools(self) -> List[Tool]:
         """Define all MCP tools"""
+        
+        # If no database manager, provide database-free tools
+        if not self.db_manager:
+            return [
+                Tool(
+                    name="server_status",
+                    description="Get the current status of the MCP Data Visualization Server",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="connect_database_help",
+                    description="Get help on how to connect databases to the visualization server",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="supported_formats",
+                    description="List supported database formats and connection methods",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="load_database",
+                    description="Load a database file directly (DuckDB, CSV, etc.) without config changes",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "database_path": {
+                                "type": "string",
+                                "description": "Full path to the database file (e.g., C:\\Users\\X260\\Downloads\\duckdb-demo.duckdb)",
+                            }
+                        },
+                        "required": ["database_path"],
+                        "additionalProperties": False,
+                    },
+                ),
+            ]
+        
+        # Full tools when database is available
         return [
             Tool(
                 name="list_tables",
@@ -284,7 +333,7 @@ class ToolRegistry:
                     "additionalProperties": False,
                 },
             ),
-            # ✅ NEW: Database switching tools
+            # SUCCESS NEW: Database switching tools
             Tool(
                 name="change_database",
                 description="Connect to a different DuckDB database file",
@@ -364,6 +413,36 @@ class ToolRegistry:
                     "additionalProperties": False,
                 },
             ),
+            Tool(
+                name="browse_downloads_databases",
+                description="Browse database files specifically in the Downloads folder (C:\\Users\\X260\\Downloads) with numbered selection",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "show_all_files": {
+                            "type": "boolean",
+                            "description": "Also show non-database files for reference",
+                            "default": False,
+                        },
+                    },
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="select_downloads_database_by_number",
+                description="Select a database by its number from the Downloads browse results",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "selection_number": {
+                            "type": "integer",
+                            "description": "The number of the database from the Downloads browse list to connect to",
+                        },
+                    },
+                    "required": ["selection_number"],
+                    "additionalProperties": False,
+                },
+            ),
         ]
 
     async def handle_browse_and_select_database(
@@ -375,7 +454,7 @@ class ToolRegistry:
             if not search_path.exists():
                 return [
                     TextContent(
-                        type="text", text=f"❌ Directory not found: {directory_path}"
+                        type="text", text=f"ERROR Directory not found: {directory_path}"
                     )
                 ]
 
@@ -388,10 +467,10 @@ class ToolRegistry:
                 all_files = [f for f in search_path.iterdir() if f.is_file()]
                 other_files = [f for f in all_files if not f.name.endswith(".duckdb")]
 
-            result = f"📁 **Database Browser: {directory_path}**\n\n"
+            result = f"Directory **Database Browser: {directory_path}**\n\n"
 
             if db_files:
-                result += "🗃️ **Available Databases:**\n"
+                result += "Database **Available Databases:**\n"
                 for i, db_file in enumerate(db_files, 1):
                     size_mb = db_file.stat().st_size / (1024 * 1024)
                     modified = db_file.stat().st_mtime
@@ -403,19 +482,19 @@ class ToolRegistry:
 
                     result += f"**{i}.** `{db_file.name}` ({size_mb:.1f}MB, modified: {mod_date})\n"
 
-                result += f"\n💡 **To connect:** Use `select_database_by_number` with a number (1-{len(db_files)})\n"
-                result += '📝 **Example:** "Select database number 2"\n\n'
+                result += f"\nTIP **To connect:** Use `select_database_by_number` with a number (1-{len(db_files)})\n"
+                result += 'Note **Example:** "Select database number 2"\n\n'
             else:
-                result += "❌ No .duckdb files found in this directory.\n\n"
+                result += "ERROR No .duckdb files found in this directory.\n\n"
 
             if other_files and show_all_files:
-                result += "📄 **Other files in directory:**\n"
+                result += "File **Other files in directory:**\n"
                 for f in other_files[:10]:  # Limit to 10 files
                     result += f"   • {f.name}\n"
                 if len(other_files) > 10:
                     result += f"   ... and {len(other_files) - 10} more files\n"
 
-            result += "\n🔧 **Other options:**\n"
+            result += "\nConfig **Other options:**\n"
             result += "• Use `change_database` with a full path\n"
             result += "• Use `:memory:` for in-memory database\n"
             result += "• Browse a different directory\n"
@@ -424,7 +503,7 @@ class ToolRegistry:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error browsing databases: {str(e)}")
             ]
 
     async def handle_select_database_by_number(
@@ -439,7 +518,7 @@ class ToolRegistry:
                 return [
                     TextContent(
                         type="text",
-                        text=f"❌ No database files found in {directory_path}",
+                        text=f"ERROR No database files found in {directory_path}",
                     )
                 ]
 
@@ -447,7 +526,7 @@ class ToolRegistry:
                 return [
                     TextContent(
                         type="text",
-                        text=f"❌ Invalid selection. Please choose a number between 1 and {len(db_files)}",
+                        text=f"ERROR Invalid selection. Please choose a number between 1 and {len(db_files)}",
                     )
                 ]
 
@@ -458,7 +537,105 @@ class ToolRegistry:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error selecting database: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error selecting database: {str(e)}")
+            ]
+
+    async def handle_browse_downloads_databases(
+        self, show_all_files: bool = False
+    ) -> List[TextContent]:
+        """Browse databases specifically in Downloads folder with numbered selection"""
+        try:
+            # Hardcoded Downloads folder path
+            downloads_path = Path("C:/Users/X260/Downloads")
+            
+            if not downloads_path.exists():
+                return [
+                    TextContent(
+                        type="text", text=f"ERROR Downloads folder not found: {downloads_path}"
+                    )
+                ]
+
+            # Find database files
+            db_files = list(downloads_path.glob("*.duckdb"))
+
+            # Optionally show other files too
+            other_files = []
+            if show_all_files:
+                all_files = [f for f in downloads_path.iterdir() if f.is_file()]
+                other_files = [f for f in all_files if not f.name.endswith(".duckdb")]
+
+            result = f"Directory **Downloads Database Browser: {downloads_path}**\n\n"
+
+            if db_files:
+                result += "Database **Available Databases:**\n"
+                for i, db_file in enumerate(db_files, 1):
+                    size_mb = db_file.stat().st_size / (1024 * 1024)
+                    modified = db_file.stat().st_mtime
+                    import datetime
+
+                    mod_date = datetime.datetime.fromtimestamp(modified).strftime(
+                        "%Y-%m-%d %H:%M"
+                    )
+
+                    result += f"**{i}.** `{db_file.name}` ({size_mb:.1f}MB, modified: {mod_date})\n"
+
+                result += f"\nTIP **To connect:** Use `select_downloads_database_by_number` with a number (1-{len(db_files)})\n"
+                result += 'Note **Example:** "Select Downloads database number 2"\n\n'
+            else:
+                result += "ERROR No .duckdb files found in Downloads folder.\n\n"
+
+            if other_files and show_all_files:
+                result += "File **Other files in Downloads:**\n"
+                for f in other_files[:10]:  # Limit to 10 files
+                    result += f"   • {f.name}\n"
+                if len(other_files) > 10:
+                    result += f"   ... and {len(other_files) - 10} more files\n"
+
+            result += "\nConfig **Other options:**\n"
+            result += "• Use `change_database` with a full path\n"
+            result += "• Use `browse_and_select_database` for other directories\n"
+            result += "• Use `:memory:` for in-memory database\n"
+
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"ERROR Error browsing Downloads databases: {str(e)}")
+            ]
+
+    async def handle_select_downloads_database_by_number(
+        self, selection_number: int
+    ) -> List[TextContent]:
+        """Select database by number from Downloads browse results"""
+        try:
+            # Hardcoded Downloads folder path
+            downloads_path = Path("C:/Users/X260/Downloads")
+            db_files = sorted(list(downloads_path.glob("*.duckdb")))
+
+            if not db_files:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"ERROR No database files found in Downloads folder",
+                    )
+                ]
+
+            if selection_number < 1 or selection_number > len(db_files):
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"ERROR Invalid selection. Please choose a number between 1 and {len(db_files)}",
+                    )
+                ]
+
+            selected_db = db_files[selection_number - 1]
+
+            # Use the existing change_database logic
+            return await self.handle_change_database(str(selected_db))
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"ERROR Error selecting Downloads database: {str(e)}")
             ]
 
     async def list_tools(self) -> List[Tool]:
@@ -562,6 +739,7 @@ class ToolRegistry:
                 "Database Management": [
                     "change_database",
                     "browse_databases",
+                    "browse_downloads_databases",
                     "list_recent_databases",
                 ],
                 "Utilities": [
@@ -589,7 +767,7 @@ class ToolRegistry:
 
             return help_text
 
-    # ✅ NEW: Database management methods
+    # SUCCESS NEW: Database management methods
     async def handle_change_database(self, database_path: str) -> List[TextContent]:
         """Handle changing database connection"""
         try:
@@ -611,7 +789,7 @@ class ToolRegistry:
             return [
                 TextContent(
                     type="text",
-                    text=f"✅ Successfully connected to database: {database_path}\n\nAvailable tables: {', '.join([t['name'] for t in tables]) if tables else 'No tables found'}",
+                    text=f"SUCCESS Successfully connected to database: {database_path}\n\nAvailable tables: {', '.join([t['name'] for t in tables]) if tables else 'No tables found'}",
                 )
             ]
 
@@ -619,7 +797,7 @@ class ToolRegistry:
             return [
                 TextContent(
                     type="text",
-                    text=f"❌ Failed to connect to database {database_path}: {str(e)}",
+                    text=f"ERROR Failed to connect to database {database_path}: {str(e)}",
                 )
             ]
 
@@ -632,7 +810,7 @@ class ToolRegistry:
             if not search_path.exists():
                 return [
                     TextContent(
-                        type="text", text=f"❌ Directory not found: {directory_path}"
+                        type="text", text=f"ERROR Directory not found: {directory_path}"
                     )
                 ]
 
@@ -647,7 +825,7 @@ class ToolRegistry:
                     )
                 ]
 
-            result = f"📁 Found {len(db_files)} database files in {directory_path}:\n\n"
+            result = f"Directory Found {len(db_files)} database files in {directory_path}:\n\n"
             for i, db_file in enumerate(db_files, 1):
                 # Get file size
                 size_mb = db_file.stat().st_size / (1024 * 1024)
@@ -661,7 +839,7 @@ class ToolRegistry:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error browsing databases: {str(e)}")
             ]
 
     async def handle_list_recent_databases(self) -> List[TextContent]:
@@ -671,20 +849,22 @@ class ToolRegistry:
             # For now, return a simple list
             current_path = str(self.db_manager.db_path) if self.db_manager else "None"
 
-            result = "📂 **Database Management:**\n\n"
-            result += f"🔗 **Currently connected:** `{current_path}`\n\n"
-            result += "💡 **Available Commands:**\n"
+            result = "Folder **Database Management:**\n\n"
+            result += f"**Currently connected:** `{current_path}`\n\n"
+            result += "TIP **Available Commands:**\n"
             result += "• `change_database` - Connect to a different database file\n"
             result += "• `browse_databases` - Find database files in a directory\n"
+            result += "• `browse_downloads_databases` - Browse databases in Downloads folder\n"
             result += "• Use path like `C:/path/to/database.duckdb` or `:memory:`\n\n"
             result += "**Example usage:**\n"
             result += '• "Connect to C:/my-data/sales.duckdb"\n'
             result += '• "Switch to in-memory database"\n'
-            result += '• "Browse databases in ./data/ folder"'
+            result += '• "Browse databases in ./data/ folder"\n'
+            result += '• "Browse databases in Downloads folder"'
 
             return [TextContent(type="text", text=result)]
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error listing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error listing databases: {str(e)}")
             ]

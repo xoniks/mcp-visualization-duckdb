@@ -1,6 +1,7 @@
 """Sample database creation utilities"""
 
 import logging
+import time
 from pathlib import Path
 from typing import Optional
 import duckdb
@@ -26,14 +27,70 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
         db_path = str(mcp_dir / "data.duckdb")
     
     logger.info(f"Creating sample database at: {db_path}")
-    print(f"📍 Database path: {db_path}")
+    print(f"LOCATION Database path: {db_path}")
     
     try:
-        print(f"🔌 Connecting to database...")
+        print(f"Connection Connecting to database...")
+        
+        # Test if file is locked or accessible first
+        db_file = Path(db_path)
+        if db_file.exists():
+            print(f"INFO Database file already exists, checking if accessible...")
+            try:
+                # Quick test connection
+                test_conn = duckdb.connect(db_path)
+                test_conn.close()
+                print(f"SUCCESS Database file is accessible")
+            except Exception as e:
+                print(f"WARNING Database file exists but may be locked: {e}")
+                # Try to use a different path
+                db_path = str(db_file.parent / f"data_{int(time.time())}.duckdb")
+                print(f"RETRY Using alternate path: {db_path}")
+        
         # Create database and tables
-        with duckdb.connect(db_path) as conn:
-            print(f"✅ Connected to database successfully")
-            print(f"📊 Creating sales_data table...")
+        print(f"Note Creating connection to: {db_path}")
+        
+        # Try with a timeout using threading
+        import threading
+        import queue
+        
+        def create_db_with_timeout():
+            result_queue = queue.Queue()
+            
+            def db_worker():
+                try:
+                    conn = duckdb.connect(db_path)
+                    result_queue.put(("success", conn))
+                except Exception as e:
+                    result_queue.put(("error", e))
+            
+            thread = threading.Thread(target=db_worker)
+            thread.daemon = True
+            thread.start()
+            thread.join(timeout=10)  # 10 second timeout
+            
+            if thread.is_alive():
+                print(f"⏰ Database connection timed out after 10 seconds")
+                # Force terminate thread (not ideal but necessary)
+                return None, "Connection timeout"
+            
+            try:
+                result_type, result = result_queue.get_nowait()
+                if result_type == "success":
+                    return result, None
+                else:
+                    return None, str(result)
+            except queue.Empty:
+                return None, "No result from database connection"
+        
+        conn, error = create_db_with_timeout()
+        if error:
+            raise Exception(f"Database connection failed: {error}")
+        
+        print(f"SUCCESS Connected to database successfully")
+        
+        try:
+            print(f"CHART Creating sales_data table...")
             # Sales data table
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sales_data (
@@ -47,7 +104,7 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 )
             """)
             
-            print(f"📊 Inserting sales data...")
+            print(f"CHART Inserting sales data...")
             # Insert sample sales data
             conn.execute("""
                 INSERT OR REPLACE INTO sales_data VALUES
@@ -119,18 +176,39 @@ def create_sample_database(db_path: Optional[str] = None) -> str:
                 (8, 'Miami', '2024-01-02', 26.2, 82, 0.5, 6.9)
             """)
             
-            print(f"✅ Database creation completed successfully!")
+            print(f"SUCCESS Database creation completed successfully!")
             logger.info("Sample database created successfully with 3 tables:")
             logger.info("- sales_data (10 rows): Product sales with categories and regions")
             logger.info("- employee_data (8 rows): Employee information with performance")
             logger.info("- weather_data (8 rows): Weather measurements for different cities")
             
-        print(f"🎉 Sample database ready at: {db_path}")
+        finally:
+            # Close connection
+            if conn:
+                conn.close()
+                print(f"Connection Database connection closed")
+            
+        print(f"COMPLETE Sample database ready at: {db_path}")
         return db_path
         
     except Exception as e:
-        logger.error(f"Error creating sample database: {e}")
-        raise
+        error_msg = f"Error creating sample database: {e}"
+        logger.error(error_msg)
+        print(f"ERROR {error_msg}")
+        
+        # Try creating a simpler database without all the sample data
+        try:
+            print(f"RETRY Attempting simple database creation...")
+            with duckdb.connect(db_path) as conn:
+                # Just create one simple table
+                conn.execute("CREATE TABLE IF NOT EXISTS test_table (id INTEGER, name VARCHAR)")
+                conn.execute("INSERT INTO test_table VALUES (1, 'Test')")
+                print(f"SUCCESS Created minimal database successfully")
+            return db_path
+        except Exception as e2:
+            logger.error(f"Even simple database creation failed: {e2}")
+            print(f"ERROR Simple database creation also failed: {e2}")
+            raise e  # Raise the original error
 
 
 def get_sample_database_info() -> dict:

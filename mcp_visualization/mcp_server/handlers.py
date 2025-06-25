@@ -40,12 +40,17 @@ class RequestHandler:
                 "validate_chart_config": self._handle_validate_chart_config,
                 "explain_chart_types": self._handle_explain_chart_types,
                 "server_status": self._handle_server_status,
-                # ✅ NEW: Database management tools
+                "connect_database_help": self._handle_connect_database_help,
+                "supported_formats": self._handle_supported_formats,
+                "load_database": self._handle_load_database,
+                # SUCCESS NEW: Database management tools
                 "change_database": self._handle_change_database,
                 "browse_databases": self._handle_browse_databases,
                 "list_recent_databases": self._handle_list_recent_databases,
                 "browse_and_select_database": self._handle_browse_and_select_database,
                 "select_database_by_number": self._handle_select_database_by_number,
+                "browse_downloads_databases": self._handle_browse_downloads_databases,
+                "select_downloads_database_by_number": self._handle_select_downloads_database_by_number,
             }
 
             handler = handlers.get(name)
@@ -58,13 +63,13 @@ class RequestHandler:
             logger.error(f"Error handling tool call '{name}': {e}")
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
-    # ✅ NEW: Database management handlers
+    # SUCCESS NEW: Database management handlers
     async def _handle_change_database(self, arguments: dict) -> List[TextContent]:
         """Handle change_database tool"""
         try:
             database_path = arguments.get("database_path")
             if not database_path:
-                return [TextContent(type="text", text="❌ Database path is required")]
+                return [TextContent(type="text", text="Error: Database path is required")]
 
             # Close current connection
             if self.db_manager:
@@ -85,7 +90,7 @@ class RequestHandler:
             return [
                 TextContent(
                     type="text",
-                    text=f"✅ Successfully connected to database: {database_path}\n\nAvailable tables: {', '.join([t['name'] for t in tables]) if tables else 'No tables found'}",
+                    text=f"SUCCESS Successfully connected to database: {database_path}\n\nAvailable tables: {', '.join([t['name'] for t in tables]) if tables else 'No tables found'}",
                 )
             ]
 
@@ -93,7 +98,7 @@ class RequestHandler:
             return [
                 TextContent(
                     type="text",
-                    text=f"❌ Failed to connect to database {database_path}: {str(e)}",
+                    text=f"ERROR Failed to connect to database {database_path}: {str(e)}",
                 )
             ]
 
@@ -108,7 +113,7 @@ class RequestHandler:
             if not search_path.exists():
                 return [
                     TextContent(
-                        type="text", text=f"❌ Directory not found: {directory_path}"
+                        type="text", text=f"ERROR Directory not found: {directory_path}"
                     )
                 ]
 
@@ -123,7 +128,7 @@ class RequestHandler:
                     )
                 ]
 
-            result = f"📁 Found {len(db_files)} database files in {directory_path}:\n\n"
+            result = f"Directory Found {len(db_files)} database files in {directory_path}:\n\n"
             for i, db_file in enumerate(db_files, 1):
                 # Get file size
                 size_mb = db_file.stat().st_size / (1024 * 1024)
@@ -137,7 +142,7 @@ class RequestHandler:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error browsing databases: {str(e)}")
             ]
 
     async def _handle_list_recent_databases(self, arguments: dict) -> List[TextContent]:
@@ -145,24 +150,25 @@ class RequestHandler:
         try:
             current_path = str(self.db_manager.db_path) if self.db_manager else "None"
 
-            result = "📂 **Database Management:**\n\n"
-            result += f"🔗 **Currently connected:** `{current_path}`\n\n"
-            result += "💡 **Available Commands:**\n"
+            result = "Folder **Database Management:**\n\n"
+            result += f"**Currently connected:** `{current_path}`\n\n"
+            result += "TIP **Available Commands:**\n"
             result += "• `change_database` - Connect to a different database file\n"
             result += "• `browse_databases` - Find database files in a directory\n"
             result += "• `browse_and_select_database` - Interactive browser with numbered selection\n"
+            result += "• `browse_downloads_databases` - Browse databases in Downloads folder\n"
             result += "• Use path like `C:/path/to/database.duckdb` or `:memory:`\n\n"
             result += "**Example usage:**\n"
             result += '• "Connect to C:/my-data/sales.duckdb"\n'
             result += '• "Switch to in-memory database"\n'
             result += '• "Browse databases in ./data/ folder"\n'
-            result += '• "Browse databases in Downloads folder with file list"'
+            result += '• "Browse databases in Downloads folder"'
 
             return [TextContent(type="text", text=result)]
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error listing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error listing databases: {str(e)}")
             ]
 
     async def _handle_browse_and_select_database(
@@ -180,7 +186,7 @@ class RequestHandler:
             if not search_path.exists():
                 return [
                     TextContent(
-                        type="text", text=f"❌ Directory not found: {directory_path}"
+                        type="text", text=f"ERROR Directory not found: {directory_path}"
                     )
                 ]
 
@@ -193,10 +199,10 @@ class RequestHandler:
                 all_files = [f for f in search_path.iterdir() if f.is_file()]
                 other_files = [f for f in all_files if not f.name.endswith(".duckdb")]
 
-            result = f"📁 **Database Browser: {directory_path}**\n\n"
+            result = f"Directory **Database Browser: {directory_path}**\n\n"
 
             if db_files:
-                result += "🗃️ **Available Databases:**\n"
+                result += "Database **Available Databases:**\n"
                 for i, db_file in enumerate(db_files, 1):
                     size_mb = db_file.stat().st_size / (1024 * 1024)
                     modified = db_file.stat().st_mtime
@@ -206,19 +212,19 @@ class RequestHandler:
 
                     result += f"**{i}.** `{db_file.name}` ({size_mb:.1f}MB, modified: {mod_date})\n"
 
-                result += f"\n💡 **To connect:** Use `select_database_by_number` with a number (1-{len(db_files)})\n"
-                result += '📝 **Example:** "Select database number 2"\n\n'
+                result += f"\nTIP **To connect:** Use `select_database_by_number` with a number (1-{len(db_files)})\n"
+                result += 'Note **Example:** "Select database number 2"\n\n'
             else:
-                result += "❌ No .duckdb files found in this directory.\n\n"
+                result += "ERROR No .duckdb files found in this directory.\n\n"
 
             if other_files and show_all_files:
-                result += "📄 **Other files in directory:**\n"
+                result += "File **Other files in directory:**\n"
                 for f in other_files[:10]:  # Limit to 10 files
                     result += f"   • {f.name}\n"
                 if len(other_files) > 10:
                     result += f"   ... and {len(other_files) - 10} more files\n"
 
-            result += "\n🔧 **Other options:**\n"
+            result += "\nConfig **Other options:**\n"
             result += "• Use `change_database` with a full path\n"
             result += "• Use `:memory:` for in-memory database\n"
             result += "• Browse a different directory\n"
@@ -227,7 +233,7 @@ class RequestHandler:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error browsing databases: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error browsing databases: {str(e)}")
             ]
 
     async def _handle_select_database_by_number(
@@ -242,7 +248,7 @@ class RequestHandler:
 
             if selection_number is None:
                 return [
-                    TextContent(type="text", text="❌ Selection number is required")
+                    TextContent(type="text", text="ERROR Selection number is required")
                 ]
 
             search_path = Path(directory_path)
@@ -252,7 +258,7 @@ class RequestHandler:
                 return [
                     TextContent(
                         type="text",
-                        text=f"❌ No database files found in {directory_path}",
+                        text=f"ERROR No database files found in {directory_path}",
                     )
                 ]
 
@@ -260,7 +266,7 @@ class RequestHandler:
                 return [
                     TextContent(
                         type="text",
-                        text=f"❌ Invalid selection. Please choose a number between 1 and {len(db_files)}",
+                        text=f"ERROR Invalid selection. Please choose a number between 1 and {len(db_files)}",
                     )
                 ]
 
@@ -273,7 +279,119 @@ class RequestHandler:
 
         except Exception as e:
             return [
-                TextContent(type="text", text=f"❌ Error selecting database: {str(e)}")
+                TextContent(type="text", text=f"ERROR Error selecting database: {str(e)}")
+            ]
+
+    async def _handle_browse_downloads_databases(
+        self, arguments: dict
+    ) -> List[TextContent]:
+        """Handle browse_downloads_databases tool"""
+        try:
+            from pathlib import Path
+            import datetime
+
+            show_all_files = arguments.get("show_all_files", False)
+
+            # Hardcoded Downloads folder path
+            downloads_path = Path("C:/Users/X260/Downloads")
+            
+            if not downloads_path.exists():
+                return [
+                    TextContent(
+                        type="text", text=f"ERROR Downloads folder not found: {downloads_path}"
+                    )
+                ]
+
+            # Find database files
+            db_files = list(downloads_path.glob("*.duckdb"))
+
+            # Optionally show other files too
+            other_files = []
+            if show_all_files:
+                all_files = [f for f in downloads_path.iterdir() if f.is_file()]
+                other_files = [f for f in all_files if not f.name.endswith(".duckdb")]
+
+            result = f"Directory **Downloads Database Browser: {downloads_path}**\n\n"
+
+            if db_files:
+                result += "Database **Available Databases:**\n"
+                for i, db_file in enumerate(db_files, 1):
+                    size_mb = db_file.stat().st_size / (1024 * 1024)
+                    modified = db_file.stat().st_mtime
+                    mod_date = datetime.datetime.fromtimestamp(modified).strftime(
+                        "%Y-%m-%d %H:%M"
+                    )
+
+                    result += f"**{i}.** `{db_file.name}` ({size_mb:.1f}MB, modified: {mod_date})\n"
+
+                result += f"\nTIP **To connect:** Use `select_downloads_database_by_number` with a number (1-{len(db_files)})\n"
+                result += 'Note **Example:** "Select Downloads database number 2"\n\n'
+            else:
+                result += "ERROR No .duckdb files found in Downloads folder.\n\n"
+
+            if other_files and show_all_files:
+                result += "File **Other files in Downloads:**\n"
+                for f in other_files[:10]:  # Limit to 10 files
+                    result += f"   • {f.name}\n"
+                if len(other_files) > 10:
+                    result += f"   ... and {len(other_files) - 10} more files\n"
+
+            result += "\nConfig **Other options:**\n"
+            result += "• Use `change_database` with a full path\n"
+            result += "• Use `browse_and_select_database` for other directories\n"
+            result += "• Use `:memory:` for in-memory database\n"
+
+            return [TextContent(type="text", text=result)]
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"ERROR Error browsing Downloads databases: {str(e)}")
+            ]
+
+    async def _handle_select_downloads_database_by_number(
+        self, arguments: dict
+    ) -> List[TextContent]:
+        """Handle select_downloads_database_by_number tool"""
+        try:
+            from pathlib import Path
+
+            selection_number = arguments.get("selection_number")
+
+            if selection_number is None:
+                return [
+                    TextContent(type="text", text="ERROR Selection number is required")
+                ]
+
+            # Hardcoded Downloads folder path
+            downloads_path = Path("C:/Users/X260/Downloads")
+            db_files = sorted(list(downloads_path.glob("*.duckdb")))
+
+            if not db_files:
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"ERROR No database files found in Downloads folder",
+                    )
+                ]
+
+            if selection_number < 1 or selection_number > len(db_files):
+                return [
+                    TextContent(
+                        type="text",
+                        text=f"ERROR Invalid selection. Please choose a number between 1 and {len(db_files)}",
+                    )
+                ]
+
+            selected_db = db_files[selection_number - 1]
+
+            # Use the existing change_database logic
+            return await self._handle_change_database(
+                {"database_path": str(selected_db)}
+            )
+
+        except Exception as e:
+            return [
+                TextContent(type="text", text=f"ERROR Error selecting Downloads database: {str(e)}")
             ]
 
     # ... rest of your existing handlers remain exactly the same ...
@@ -294,7 +412,7 @@ class RequestHandler:
             response = "**Available Tables:**\n\n"
             for table in tables:
                 table_info = self.db_manager.get_table_info(table["name"])
-                response += f"📊 **{table['name']}** ({table['type']})\n"
+                response += f"CHART **{table['name']}** ({table['type']})\n"
                 if "row_count" in table_info:
                     response += f"   - {table_info['row_count']} rows, {len(table_info.get('columns', []))} columns\n"
                 response += "\n"
@@ -445,7 +563,7 @@ class RequestHandler:
             # Generate configuration questions
             questions = self._generate_configuration_questions(chart_type, columns)
 
-            response = f"🎯 **Visualization Request Processed**\n\n"
+            response = f"Target **Visualization Request Processed**\n\n"
             response += f"**Detected Chart Type:** {chart_type.value.title()} Chart\n"
             response += f"**Confidence:** {llm_response.get('confidence', 'N/A')}\n"
             response += f"**Request ID:** `{request_id}`\n\n"
@@ -533,7 +651,7 @@ class RequestHandler:
             if not validation["valid"]:
                 error_msg = "Configuration validation failed:\n\n"
                 for error in validation["errors"]:
-                    error_msg += f"❌ {error}\n"
+                    error_msg += f"ERROR {error}\n"
                 return [TextContent(type="text", text=error_msg)]
 
             # Generate visualization
@@ -553,7 +671,7 @@ class RequestHandler:
                 viz_request.status = "completed"
 
                 # Format response
-                response = f"✅ **Chart Generated Successfully!**\n\n"
+                response = f"SUCCESS **Chart Generated Successfully!**\n\n"
                 response += f"**Chart Type:** {viz_request.chart_type.value.title()}\n"
                 response += (
                     f"**Data Source:** {viz_request.table_name} ({len(df)} rows)\n"
@@ -564,11 +682,11 @@ class RequestHandler:
 
                 # Add insights if available
                 if insights:
-                    response += "## 📊 Statistical Insights\n\n"
+                    response += "## CHART Statistical Insights\n\n"
                     response += self._format_insights(insights)
                     response += "\n\n"
 
-                response += "## 📈 Interactive Chart\n\n"
+                response += "## CHART Interactive Chart\n\n"
                 response += html_widget
 
                 # Clean up request
@@ -625,7 +743,7 @@ class RequestHandler:
 
             if result["success"]:
                 table_info = result["table_info"]
-                response = f"✅ **CSV Loaded Successfully**\n\n"
+                response = f"SUCCESS **CSV Loaded Successfully**\n\n"
                 response += f"**Table Name:** {table_name}\n"
                 response += f"**File:** {file_path}\n"
                 response += f"**Rows:** {table_info['row_count']}\n"
@@ -638,7 +756,7 @@ class RequestHandler:
                 response += f"\nUse `analyze_table` with '{table_name}' to explore the data further."
 
             else:
-                response = f"❌ **Failed to Load CSV**\n\n"
+                response = f"ERROR **Failed to Load CSV**\n\n"
                 response += f"Error: {result['error']}"
 
             return [TextContent(type="text", text=response)]
@@ -727,7 +845,7 @@ class RequestHandler:
 
             html_widget = self.chart_generator.create_sample_chart(chart_type)
 
-            response = f"📊 **Sample {chart_type.value.title()} Chart**\n\n"
+            response = f"CHART **Sample {chart_type.value.title()} Chart**\n\n"
             response += (
                 "This is a sample chart with generated data for testing purposes.\n\n"
             )
@@ -757,15 +875,15 @@ class RequestHandler:
             )
 
             if validation["valid"]:
-                response = "✅ **Configuration Valid**\n\n"
+                response = "SUCCESS **Configuration Valid**\n\n"
                 response += f"The column mappings are appropriate for a {chart_type.value} chart.\n"
 
                 if validation.get("warnings"):
-                    response += "\n⚠️ **Warnings:**\n"
+                    response += "\nWARNING **Warnings:**\n"
                     for warning in validation["warnings"]:
                         response += f"- {warning}\n"
             else:
-                response = "❌ **Configuration Invalid**\n\n"
+                response = "ERROR **Configuration Invalid**\n\n"
                 response += "**Errors:**\n"
                 for error in validation["errors"]:
                     response += f"- {error}\n"
@@ -849,14 +967,14 @@ class RequestHandler:
         """Handle server_status tool"""
         try:
             # Get component status
-            db_status = "✅ Connected" if self.db_manager else "❌ Not initialized"
-            llm_status = "❌ Not connected"
+            db_status = "SUCCESS Connected" if self.db_manager else "ERROR Not initialized"
+            llm_status = "ERROR Not connected"
 
             if self.llm_client:
                 llm_connected = await self.llm_client.check_connection()
-                llm_status = "✅ Connected" if llm_connected else "⚠️ Connection issues"
+                llm_status = "SUCCESS Connected" if llm_connected else "WARNING Connection issues"
 
-            chart_status = "✅ Ready" if self.chart_generator else "❌ Not initialized"
+            chart_status = "SUCCESS Ready" if self.chart_generator else "ERROR Not initialized"
 
             # Get database info
             tables = self.db_manager.get_tables() if self.db_manager else []
@@ -903,3 +1021,220 @@ class RequestHandler:
         except Exception as e:
             logger.error(f"Error getting server status: {e}")
             return [TextContent(type="text", text=f"Error getting server status: {e}")]
+    
+    async def _handle_connect_database_help(self, arguments: dict) -> List[TextContent]:
+        """Handle connect_database_help tool"""
+        try:
+            help_text = """# How to Connect Databases
+
+The MCP Data Visualization Server is currently running in **database-free mode**. Here's how to connect databases:
+
+## Quick Start Options
+
+### 1. Reconfigure with Database
+Run the configuration tool again and choose a database option:
+```bash
+mcp-viz configure
+```
+
+### 2. Environment Variable (Recommended)
+Set the database path directly in your Claude Desktop configuration:
+
+**Windows:** Edit `%APPDATA%\\Claude\\claude_desktop_config.json`
+**Mac:** Edit `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Linux:** Edit `~/.config/claude/claude_desktop_config.json`
+
+Add the database environment variable:
+```json
+{
+  "mcpServers": {
+    "data-viz-server": {
+      "command": "python",
+      "args": ["-m", "mcp_visualization.server"],
+      "env": {
+        "DUCKDB_DATABASE_PATH": "/path/to/your/database.duckdb"
+      }
+    }
+  }
+}
+```
+
+## Supported Database Types
+
+- **DuckDB files** (.duckdb, .db)
+- **CSV files** (automatically imported)
+- **In-memory databases** (for temporary work)
+
+## Next Steps
+
+1. Set up your database path
+2. Restart Claude Desktop
+3. Try: "List available tables"
+4. Start creating visualizations!
+
+*Once connected, you'll have access to powerful data visualization tools.*"""
+
+            return [TextContent(type="text", text=help_text)]
+
+        except Exception as e:
+            logger.error(f"Error providing database help: {e}")
+            return [TextContent(type="text", text=f"Error: {e}")]
+    
+    async def _handle_supported_formats(self, arguments: dict) -> List[TextContent]:
+        """Handle supported_formats tool"""
+        try:
+            formats_text = """# Supported Database Formats & Features
+
+## Database Formats
+- **DuckDB** (.duckdb, .db) - Recommended for fast analytics
+- **CSV Files** - Automatically imported to DuckDB
+- **In-Memory** - Temporary databases for quick analysis
+
+## Chart Types Available
+- **Bar Charts** - Compare categories and values
+- **Line Charts** - Show trends over time
+- **Scatter Plots** - Explore relationships between variables
+- **Pie Charts** - Display proportions and percentages
+- **Histograms** - Show data distributions
+- **Box Plots** - Visualize quartiles and outliers
+- **Heatmaps** - Display correlation matrices
+- **Area Charts** - Show cumulative values
+
+## Analysis Features
+- **Rule-based Chart Suggestions** - No external LLM required
+- **Statistical Insights** - Automatic pattern detection
+- **Interactive HTML Widgets** - Powered by Plotly
+- **SQL Query Builder** - Safe, validated queries
+- **Data Type Detection** - Smart column analysis
+
+## Current Mode
+**Database-Free Mode** - Ready to connect to your data sources!
+
+Use the `connect_database_help` tool for setup instructions."""
+
+            return [TextContent(type="text", text=formats_text)]
+
+        except Exception as e:
+            logger.error(f"Error listing supported formats: {e}")
+            return [TextContent(type="text", text=f"Error: {e}")]
+    
+    async def _handle_load_database(self, arguments: dict) -> List[TextContent]:
+        """Handle load_database tool - directly loads a database file"""
+        try:
+            print(f"DEBUG: load_database handler started", file=sys.stderr)
+            
+            database_path = arguments.get("database_path")
+            print(f"DEBUG: Received database_path: {database_path}", file=sys.stderr)
+            
+            if not database_path:
+                print(f"DEBUG: No database path provided", file=sys.stderr)
+                return [TextContent(type="text", text="Error: Database path is required")]
+            
+            # Import required modules
+            print(f"DEBUG: Importing required modules", file=sys.stderr)
+            from pathlib import Path
+            from ..database.manager import DatabaseManager
+            
+            print(f"DEBUG: Creating Path object", file=sys.stderr)
+            db_path = Path(database_path)
+            print(f"DEBUG: db_path = {db_path}", file=sys.stderr)
+            print(f"DEBUG: db_path.absolute() = {db_path.absolute()}", file=sys.stderr)
+            
+            # Check if file exists
+            print(f"DEBUG: Checking if file exists", file=sys.stderr)
+            exists = db_path.exists()
+            print(f"DEBUG: File exists: {exists}", file=sys.stderr)
+            
+            if not exists:
+                # Try to list parent directory contents for debugging
+                try:
+                    parent_dir = db_path.parent
+                    print(f"DEBUG: Parent directory: {parent_dir}", file=sys.stderr)
+                    print(f"DEBUG: Parent exists: {parent_dir.exists()}", file=sys.stderr)
+                    if parent_dir.exists():
+                        print(f"DEBUG: Contents of parent directory:", file=sys.stderr)
+                        for item in parent_dir.iterdir():
+                            if item.is_file() and item.suffix.lower() in ['.duckdb', '.db', '.csv']:
+                                print(f"DEBUG:   - {item.name}", file=sys.stderr)
+                except Exception as e:
+                    print(f"DEBUG: Error listing parent directory: {e}", file=sys.stderr)
+                
+                return [TextContent(type="text", text=f"Error: Database file not found at {database_path}")]
+            
+            # Check file extension
+            print(f"DEBUG: Checking file extension: {db_path.suffix.lower()}", file=sys.stderr)
+            if not db_path.suffix.lower() in ['.duckdb', '.db', '.csv']:
+                return [TextContent(type="text", text=f"Error: Unsupported file type {db_path.suffix}. Supported: .duckdb, .db, .csv")]
+            
+            try:
+                print(f"DEBUG: About to create DatabaseManager", file=sys.stderr)
+                # Create new database manager with the specified path
+                new_db_manager = DatabaseManager(db_path)
+                print(f"DEBUG: DatabaseManager created successfully", file=sys.stderr)
+                
+                # Replace the current database manager
+                print(f"DEBUG: Replacing current database manager", file=sys.stderr)
+                self.db_manager = new_db_manager
+                
+                # Get basic info about the database
+                print(f"DEBUG: Getting table information", file=sys.stderr)
+                tables = self.db_manager.get_tables()
+                print(f"DEBUG: Found {len(tables)} tables", file=sys.stderr)
+                
+                response = f"""# Database Loaded Successfully!
+
+**File:** {database_path}
+**Type:** {db_path.suffix} 
+**Tables Found:** {len(tables)}
+
+## Available Tables:
+"""
+                if tables:
+                    print(f"DEBUG: Processing table information", file=sys.stderr)
+                    for table in tables:
+                        print(f"DEBUG: Processing table: {table['name']}", file=sys.stderr)
+                        # Get table info for each table
+                        table_info = self.db_manager.get_table_info(table['name'])
+                        row_count = table_info.get('row_count', 0)
+                        col_count = len(table_info.get('columns', []))
+                        print(f"DEBUG: Table {table['name']}: {row_count} rows, {col_count} columns", file=sys.stderr)
+                        response += f"- **{table['name']}** ({row_count} rows, {col_count} columns)\n"
+                else:
+                    print(f"DEBUG: No tables found in database", file=sys.stderr)
+                    response += "No tables found in the database.\n"
+                
+                if tables:
+                    response += f"""
+## Next Steps:
+- Try: "Analyze the {tables[0]['name']} table"
+- Try: "Create a chart from {tables[0]['name']}"
+- Try: "Show me column statistics"
+
+**Database is now ready for visualization!**
+"""
+                else:
+                    response += f"""
+## Next Steps:
+- The database appears to be empty or the tables are not accessible
+- You can try loading CSV data or check the database file
+
+**Database connection established but no tables found.**
+"""
+                
+                print(f"DEBUG: Preparing response and returning success", file=sys.stderr)
+                return [TextContent(type="text", text=response)]
+                
+            except Exception as db_error:
+                print(f"DEBUG: Database connection error: {type(db_error).__name__}: {db_error}", file=sys.stderr)
+                import traceback
+                traceback.print_exc(file=sys.stderr)
+                error_msg = f"Failed to connect to database: {str(db_error)}"
+                logger.error(error_msg)
+                return [TextContent(type="text", text=f"Error: {error_msg}")]
+            
+        except Exception as e:
+            print(f"DEBUG: General handler error: {type(e).__name__}: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc(file=sys.stderr)
+            logger.error(f"Error loading database: {e}")
+            return [TextContent(type="text", text=f"Error loading database: {e}")]

@@ -144,23 +144,23 @@ async def main():
 
         # Only print transport info to stderr if we have a terminal
         if sys.stdout.isatty():
-            print(f"🚀 Starting MCP server...", file=sys.stderr)
-            print(f"📊 Transport: {args.transport}", file=sys.stderr)
+            print(f"ROCKET Starting MCP server...", file=sys.stderr)
+            print(f"CHART Transport: {args.transport}", file=sys.stderr)
 
         await server.run(transport=args.transport)
 
     except KeyboardInterrupt:
         if sys.stdout.isatty():
-            print("\n🛑 Server shutdown requested", file=sys.stderr)
+            print("\nSTOP Server shutdown requested", file=sys.stderr)
         logger.info("Server shutdown requested by user")
     except Exception as e:
         logger.error(f"Server error: {e}")
         if sys.stdout.isatty():
-            print(f"❌ Server error: {e}", file=sys.stderr)
+            print(f"ERROR Server error: {e}", file=sys.stderr)
         return 1
     finally:
         if sys.stdout.isatty():
-            print("👋 Goodbye!", file=sys.stderr)
+            print("GOODBYE Goodbye!", file=sys.stderr)
 
 
 if __name__ == "__main__":
