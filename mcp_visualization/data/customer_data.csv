@@ -1,0 +1,11 @@
+customer_id,customer_name,email,age,gender,city,state,signup_date,total_purchases,loyalty_tier
+1,John Doe,john.doe@email.com,32,Male,New York,NY,2023-03-15,2459.97,Gold
+2,Jane Smith,jane.smith@email.com,28,Female,Los Angeles,CA,2023-05-20,1879.94,Silver
+3,Mike Johnson,mike.j@email.com,45,Male,Chicago,IL,2023-01-10,3299.95,Platinum
+4,Sarah Wilson,sarah.w@email.com,35,Female,Houston,TX,2023-07-08,1599.98,Silver
+5,David Brown,david.b@email.com,52,Male,Phoenix,AZ,2023-02-14,1049.99,Bronze
+6,Lisa Davis,lisa.d@email.com,29,Female,Philadelphia,PA,2023-06-25,2199.96,Gold
+7,Chris Miller,chris.m@email.com,38,Male,San Antonio,TX,2023-04-12,899.99,Bronze
+8,Amy Taylor,amy.t@email.com,41,Female,San Diego,CA,2023-08-30,1749.97,Silver
+9,Tom Anderson,tom.a@email.com,33,Male,Dallas,TX,2023-03-22,1299.99,Bronze
+10,Emma White,emma.w@email.com,26,Female,San Jose,CA,2023-09-15,1949.98,Gold

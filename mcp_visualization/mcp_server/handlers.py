@@ -4,6 +4,7 @@ Request handlers for MCP tools
 
 import logging
 import json
+import sys
 from typing import Dict, List, Any, Optional
 from mcp.types import TextContent
 
@@ -1228,9 +1229,60 @@ Use the `connect_database_help` tool for setup instructions."""
                 print(f"DEBUG: Database connection error: {type(db_error).__name__}: {db_error}", file=sys.stderr)
                 import traceback
                 traceback.print_exc(file=sys.stderr)
-                error_msg = f"Failed to connect to database: {str(db_error)}"
-                logger.error(error_msg)
-                return [TextContent(type="text", text=f"Error: {error_msg}")]
+                
+                # Try alternative: create in-memory database and import the file if it's corrupted
+                print(f"DEBUG: Attempting fallback - in-memory database with data import", file=sys.stderr)
+                try:
+                    from ..database.manager import DatabaseManager
+                    
+                    # Create in-memory database
+                    print(f"DEBUG: Creating in-memory database", file=sys.stderr)
+                    memory_db_manager = DatabaseManager(":memory:")
+                    
+                    # Try to import data from the problematic file using DuckDB's ATTACH
+                    print(f"DEBUG: Attempting to attach problematic database", file=sys.stderr)
+                    memory_db_manager.connection.execute(f"ATTACH '{database_path}' AS external_db")
+                    
+                    # List tables from external database
+                    external_tables = memory_db_manager.connection.execute("SHOW TABLES FROM external_db").fetchall()
+                    print(f"DEBUG: Found {len(external_tables)} tables in external database", file=sys.stderr)
+                    
+                    # Copy tables to memory database
+                    for table_row in external_tables:
+                        table_name = table_row[0]
+                        print(f"DEBUG: Copying table: {table_name}", file=sys.stderr)
+                        memory_db_manager.connection.execute(
+                            f"CREATE TABLE {table_name} AS SELECT * FROM external_db.{table_name}"
+                        )
+                    
+                    # Replace the database manager
+                    self.db_manager = memory_db_manager
+                    tables = self.db_manager.get_tables()
+                    
+                    response = f"""# Database Loaded via In-Memory Import!
+
+**Original File:** {database_path}
+**Status:** Loaded via in-memory fallback (original file may have compatibility issues)
+**Tables Found:** {len(tables)}
+
+## Available Tables:
+"""
+                    if tables:
+                        for table in tables:
+                            table_info = self.db_manager.get_table_info(table['name'])
+                            row_count = table_info.get('row_count', 0)
+                            col_count = len(table_info.get('columns', []))
+                            response += f"- **{table['name']}** ({row_count} rows, {col_count} columns)\n"
+                    
+                    response += "\n**Database is ready for visualization!**"
+                    print(f"DEBUG: Fallback successful, returning success response", file=sys.stderr)
+                    return [TextContent(type="text", text=response)]
+                    
+                except Exception as fallback_error:
+                    print(f"DEBUG: Fallback also failed: {fallback_error}", file=sys.stderr)
+                    error_msg = f"Failed to connect to database: {str(db_error)}. Fallback import also failed: {str(fallback_error)}"
+                    logger.error(error_msg)
+                    return [TextContent(type="text", text=f"Error: {error_msg}")]
             
         except Exception as e:
             print(f"DEBUG: General handler error: {type(e).__name__}: {e}", file=sys.stderr)

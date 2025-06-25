@@ -82,10 +82,10 @@ Thumbs.db
 *.duckdb
 *.duckdb-wal
 *.duckdb-shm
-data/
 logs/
 dist_test/
 .backup/
+# Note: data/ folder is now included for CSV sample files
 
 # Testing
 .pytest_cache/

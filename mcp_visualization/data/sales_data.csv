@@ -1,0 +1,16 @@
+id,product_name,category,sales_amount,quantity,sale_date,region,salesperson
+1,Laptop Pro,Electronics,1299.99,2,2024-01-15,North,Alice Johnson
+2,Wireless Mouse,Electronics,29.99,15,2024-01-16,South,Bob Smith
+3,Coffee Maker,Appliances,79.99,8,2024-01-17,East,Carol Davis
+4,Smartphone,Electronics,899.99,12,2024-01-18,West,David Wilson
+5,Desk Chair,Furniture,199.99,5,2024-01-19,North,Alice Johnson
+6,Monitor,Electronics,349.99,7,2024-01-20,South,Eve Brown
+7,Kitchen Blender,Appliances,89.99,4,2024-01-21,East,Frank Miller
+8,Bookshelf,Furniture,159.99,3,2024-01-22,West,Grace Taylor
+9,Tablet,Electronics,449.99,9,2024-01-23,North,Henry Lee
+10,Microwave,Appliances,129.99,6,2024-01-24,South,Ivy Chen
+11,Gaming Keyboard,Electronics,79.99,11,2024-01-25,East,Jack White
+12,Office Desk,Furniture,299.99,4,2024-01-26,West,Kate Green
+13,Smart Watch,Electronics,249.99,8,2024-01-27,North,Liam Black
+14,Air Fryer,Appliances,119.99,7,2024-01-28,South,Mia Gray
+15,Sofa,Furniture,799.99,2,2024-01-29,East,Noah Blue

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-visualization-duckdb"
-version = "0.0.25"
+version = "0.0.29"
 description = "Transform natural language into beautiful data visualizations using Claude Desktop and DuckDB"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -68,13 +68,14 @@ Issues = "https://github.com/your-username/mcp-visualization-duckdb/issues"
 
 [project.scripts]
 mcp-viz = "mcp_visualization.cli:main"
+build-samples = "build_sample_db:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mcp_visualization*"]
 
 [tool.setuptools.package-data]
-"mcp_visualization.data" = ["*.csv", "*.duckdb"]
+"mcp_visualization.data" = ["*.csv", "*.duckdb", "*.db"]
 "mcp_visualization.config" = ["*.yaml", "*.yml"]
 
 [tool.black]

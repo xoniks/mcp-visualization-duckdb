@@ -338,5 +338,96 @@ def create_db(path: Optional[str]):
         sys.exit(1)
 
 
+@main.command()
+def setup_samples():
+    """Extract and set up sample database from package"""
+    try:
+        from .install_helper import main as install_main
+        return install_main()
+    except Exception as e:
+        print_error(f"Sample setup failed: {e}")
+        sys.exit(1)
+
+
+@main.command()
+def find_samples():
+    """Find and show sample database location"""
+    try:
+        from pathlib import Path
+        
+        # Check Downloads directory first (primary location)
+        user_home = Path.home()
+        sample_dir = user_home / "Downloads" / "mcp-visualization-samples"
+        sample_db = sample_dir / "sample.duckdb"
+        
+        # Also check backup location
+        backup_dir = user_home / ".mcp-visualization" / "samples"
+        backup_db = backup_dir / "sample.duckdb"
+        
+        console.print("🔍 [bold]Searching for sample databases...[/bold]\n")
+        
+        if sample_db.exists():
+            size_mb = sample_db.stat().st_size / (1024 * 1024)
+            console.print(f"✅ [green]Sample database found![/green]")
+            console.print(f"   📍 Location: {sample_db}")
+            console.print(f"   📊 Size: {size_mb:.2f} MB")
+            console.print(f"   📁 Directory: {sample_dir}")
+            
+            # Check if backup also exists
+            if backup_db.exists():
+                console.print(f"   🔄 Backup: {backup_db}")
+            
+            # Check if README exists
+            readme_path = sample_dir / "README.md"
+            if readme_path.exists():
+                console.print(f"   📝 Documentation: {readme_path}")
+            
+            console.print(f"\n💡 [cyan]To use this database:[/cyan]")
+            console.print(f'   • Say: "Load database from {sample_db}"')
+            console.print(f'   • Or configure it permanently with: mcp-viz configure')
+            
+        elif backup_db.exists():
+            size_mb = backup_db.stat().st_size / (1024 * 1024)
+            console.print(f"✅ [green]Sample database found in backup location![/green]")
+            console.print(f"   📍 Location: {backup_db}")
+            console.print(f"   📊 Size: {size_mb:.2f} MB")
+            console.print(f"   📁 Directory: {backup_dir}")
+            
+            console.print(f"\n💡 [cyan]To use this database:[/cyan]")
+            console.print(f'   • Say: "Load database from {backup_db}"')
+            console.print(f'   • Or configure it permanently with: mcp-viz configure')
+            
+        else:
+            # Check if we have CSV files in the package
+            try:
+                import pkg_resources
+                package_data_dir = Path(pkg_resources.resource_filename('mcp_visualization', 'data'))
+                csv_files = list(package_data_dir.glob("*.csv"))
+                
+                if csv_files:
+                    console.print("📊 [yellow]Sample CSV files found in package[/yellow]")
+                    console.print(f"   📁 Package data: {package_data_dir}")
+                    for csv_file in csv_files:
+                        console.print(f"   - {csv_file.name}")
+                    console.print(f"\n💡 [cyan]To create sample database:[/cyan]")
+                    console.print(f"   Run: mcp-viz setup-samples")
+                else:
+                    console.print("❌ [red]No sample data found[/red]")
+                    console.print(f"   Expected database: {sample_db}")
+                    console.print(f"   Expected CSV files: {package_data_dir}")
+                    console.print(f"\n💡 [cyan]To set up sample database:[/cyan]")
+                    console.print(f"   Run: mcp-viz setup-samples")
+                    
+            except Exception as pkg_error:
+                console.print("❌ [red]Sample database not found[/red]")
+                console.print(f"   Expected location: {sample_db}")
+                console.print(f"\n💡 [cyan]To set up sample database:[/cyan]")
+                console.print(f"   Run: mcp-viz setup-samples")
+            
+    except Exception as e:
+        print_error(f"Search failed: {e}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
