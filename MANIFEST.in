@@ -1,0 +1,13 @@
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+
+recursive-include mcp_visualization *.py
+recursive-include mcp_visualization *.yaml *.yml
+recursive-include mcp_visualization *.csv *.duckdb
+
+exclude code/
+exclude tests/
+exclude *.pyc
+exclude __pycache__/

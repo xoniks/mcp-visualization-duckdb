@@ -1,0 +1,131 @@
+# MCP Data Visualization Server Configuration (Flattened for Pydantic)
+
+# Server Configuration
+server__name: "data-viz-server"
+server__version: "1.0.0"
+server__description: "Natural Language Data Visualization MCP Server"
+server__transport: "stdio"
+server__log_level: "INFO"
+
+# Database Configuration
+database__type: "duckdb"
+database__connection__path: "./data/mcp.duckdb"
+database__connection__timeout: 30
+database__connection__read_only: false
+database__settings__memory_limit: "1GB"
+database__settings__threads: 4
+database__settings__enable_extensions: true
+
+# LLM Configuration - Disabled (Use Claude Desktop instead) 
+llm__provider: "disabled"
+llm__ollama__base_url: "http://localhost:11434"
+llm__ollama__model: "qwen2:0.5b"
+llm__ollama__timeout: 30
+llm__ollama__max_tokens: 2048
+llm__ollama__temperature: 0.1
+llm__prompts__chart_type_detection_template: |
+  Analyze this visualization request and determine the best chart type.
+  Request: "{request}"
+  Available columns: {columns}
+  Chart types: bar, line, scatter, pie, histogram, box, heatmap, area
+  Respond with JSON: {{"chart_type": "type", "confidence": 0.8, "reasoning": "explanation"}}
+llm__prompts__column_suggestion_template: |
+  For a {chart_type} chart with columns {columns}, suggest the most appropriate column mappings.
+  Respond with JSON: {{"suggestions": {{"x_axis": "col1", "y_axis": "col2", "explanation": "why"}}}}
+llm__prompts__insights_description_template: |
+  Generate a clear, concise, and insightful description for the chart, highlighting key findings and observations. Use accessible language.
+llm__prompts__chart_explanation_template: |
+  Explain what this chart is showing and how to interpret it, using clear, non-technical language.
+llm__prompts__data_quality_check_template: |
+  Analyze this dataset for potential data quality issues, including missing values, outliers, inconsistencies, or incorrect data types. Suggest potential data cleaning and preparation if needed.
+llm__prompts__followup_questions_template: |
+  Based on this {chart_type} chart, its context, and generated insights, propose 3-5 relevant and insightful follow-up questions a user might ask. Format them as a simple numbered list.
+
+# Visualization Configuration
+visualization__default_theme: "plotly_white"
+visualization__output_format: "html"
+visualization__figure_size__width: 800
+visualization__figure_size__height: 600
+visualization__color_schemes__categorical: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
+visualization__color_schemes__sequential: "Blues"
+visualization__color_schemes__diverging: "RdBu"
+visualization__chart_defaults__bar__orientation: "v"
+visualization__chart_defaults__bar__text_auto: true
+visualization__chart_defaults__bar__show_legend: true
+visualization__chart_defaults__line__mode: "lines+markers"
+visualization__chart_defaults__line__line_width: 2
+visualization__chart_defaults__line__marker_size: 6
+visualization__chart_defaults__scatter__mode: "markers"
+visualization__chart_defaults__scatter__marker_size: 8
+visualization__chart_defaults__scatter__opacity: 0.7
+visualization__chart_defaults__pie__hole: 0
+visualization__chart_defaults__pie__text_info: "label+percent"
+visualization__chart_defaults__histogram__bins: 30
+visualization__chart_defaults__histogram__opacity: 0.7
+visualization__chart_defaults__histogram__show_distribution: true
+
+# Insights Configuration
+insights__enabled_types:
+  - "max"
+  - "min"
+  - "mean"
+  - "median"
+  - "distinct_count"
+  - "total_count"
+  - "correlation"
+  - "trend"
+insights__correlation_threshold: 0.5
+insights__trend_detection__min_points: 5
+insights__trend_detection__significance_level: 0.05
+insights__formatting__decimal_places: 2
+insights__formatting__percentage_format: ".1%"
+insights__formatting__large_number_format: ".2e"
+
+# Data Processing Configuration
+data__max_rows_preview: 1000
+data__max_file_size_mb: 100
+data__supported_formats: ["csv", "parquet", "json", "xlsx"]
+data__preprocessing__auto_detect_types: true
+data__preprocessing__handle_missing_values: true
+data__preprocessing__date_formats: ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y-%m-%d %H:%M:%S"]
+data__sampling__large_dataset_threshold: 100000
+data__sampling__sample_size: 10000
+data__sampling__sampling_method: "random"
+
+# Security Configuration
+security__max_query_length: 10000
+security__allowed_sql_keywords:
+  - "SELECT"
+  - "FROM"
+  - "WHERE"
+  - "GROUP BY"
+  - "ORDER BY"
+  - "LIMIT"
+  - "JOIN"
+  - "INNER JOIN"
+  - "LEFT JOIN"
+  - "RIGHT JOIN"
+security__blocked_sql_keywords:
+  - "DROP"
+  - "DELETE"
+  - "INSERT"
+  - "UPDATE"
+  - "CREATE"
+  - "ALTER"
+  - "TRUNCATE"
+security__file_access__allowed_paths: ["./data/", "./samples/"]
+security__file_access__blocked_extensions: [".exe", ".bat", ".sh", ".py"]
+
+# Development Configuration
+development__debug_mode: true
+development__auto_reload: true
+development__sample_data__generate_on_startup: true
+development__sample_data__datasets:
+  - name: "sales"
+    file: "./data/samples/sales_data.csv"
+  - name: "customers"
+    file: "./data/samples/customers.csv"
+  - name: "products"
+    file: "./data/samples/products.csv"
+development__testing__use_test_database: true
+development__testing__test_data_size: 100
