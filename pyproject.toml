@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcp-visualization-duckdb"
 version = "0.1.0"
-description = "Transform natural language into beautiful data visualizations using Claude Desktop and DuckDB"
+description = "Transform natural language into beautiful data visualizations using Claude Desktop with DuckDB and Databricks support"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
     {name = "MCP Visualization Contributors"}
 ]
-keywords = ["mcp", "claude", "desktop", "visualization", "duckdb", "charts", "data-analysis"]
+keywords = ["mcp", "claude", "desktop", "visualization", "duckdb", "databricks", "charts", "data-analysis", "sql", "warehouse"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
