@@ -1,2 +1,24 @@
-# Auto detect text files and perform LF normalization
+# Handle line endings automatically for cross-platform compatibility
 * text=auto
+
+# Specific file types
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+
+# Windows batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.duckdb binary
+*.whl binary

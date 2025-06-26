@@ -2,8 +2,9 @@
 
 import asyncio
 import logging
+import sys
 import uuid
-from pathlib import Path  # ✅ ADDED: Missing Path import
+from pathlib import Path  # SUCCESS ADDED: Missing Path import
 from typing import Dict, List, Any, Optional
 
 from mcp.server import Server
@@ -13,18 +14,19 @@ from mcp.types import (
     TextContent,
     ServerCapabilities,
     ToolsCapability,
-)  # ✅ FIXED: Correct import name
+)  # SUCCESS FIXED: Correct import name
 
-# ✅ FIXED: Import the config_manager and the specific config types for type hinting
-from config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
-from database.manager import DatabaseManager
-from llm.simple_fallback import SimpleFallbackClient
-from visualization.chart_generator import ChartGenerator
-from visualization.chart_types import ChartType, InsightType, chart_registry
-from utils.logger import setup_logging
-from mcp_server.tools import ToolRegistry
-from mcp_server.handlers import RequestHandler
-from mcp_server.types import VisualizationRequest
+# Import the config_manager and the specific config types for type hinting
+from ..config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
+from ..database.manager import DatabaseManager
+from ..database.interface import DatabaseFactory
+from ..llm.simple_fallback import SimpleFallbackClient
+from ..visualization.chart_generator import ChartGenerator
+from ..visualization.chart_types import ChartType, InsightType, chart_registry
+from ..utils.logger import setup_logging
+from .tools import ToolRegistry
+from .handlers import RequestHandler
+from .types import VisualizationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +35,9 @@ class DataVisualizationMCPServer:
     """Main MCP server for data visualization"""
 
     def __init__(self):
-        # ✅ Load the full settings object from the global config_manager
+        # SUCCESS Load the full settings object from the global config_manager
         self.settings: Settings = config_manager.get_settings()
-        # ✅ Access specific config sections from the settings object
+        # SUCCESS Access specific config sections from the settings object
         self.server_config: ServerConfig = self.settings.server
         self.dev_config: DevelopmentConfig = self.settings.development
 
@@ -43,7 +45,7 @@ class DataVisualizationMCPServer:
         self.server = Server(self.server_config.name)  # Use the loaded config
 
         # Initialize components (these will now implicitly use config_manager internally)
-        self.db_manager: Optional[DatabaseManager] = None
+        self.db_manager = None  # Will be DatabaseInterface type
         self.llm_client: Optional[SimpleFallbackClient] = None
         self.chart_generator: Optional[ChartGenerator] = None
         self.tool_registry: Optional[ToolRegistry] = None
@@ -65,54 +67,100 @@ class DataVisualizationMCPServer:
     async def initialize(self):
         """Initialize server components"""
         try:
-            # Initialize database manager (it will get config from config_manager itself)
-            self.db_manager = DatabaseManager()
-            logger.info("Database manager initialized")
+            print("Starting server initialization...", file=sys.stderr)
+            
+            # Initialize database manager based on available configuration
+            print("Initializing database manager...", file=sys.stderr)
+            try:
+                # Detect database type and create appropriate manager
+                db_type = DatabaseFactory.detect_database_type()
+                print(f"Detected database type: {db_type}", file=sys.stderr)
+                
+                if db_type == 'databricks':
+                    print("Setting up Databricks connection...", file=sys.stderr)
+                    self.db_manager = DatabaseFactory.create_manager('databricks')
+                    if self.db_manager.connect():
+                        logger.info("Databricks manager initialized successfully")
+                        print("Databricks manager ready", file=sys.stderr)
+                    else:
+                        print("Databricks connection failed, falling back to database-free mode", file=sys.stderr)
+                        self.db_manager = None
+                
+                elif db_type == 'duckdb':
+                    # Check if DuckDB database is configured
+                    import os
+                    if os.getenv("DUCKDB_DATABASE_PATH"):
+                        print("Setting up DuckDB connection...", file=sys.stderr)
+                        self.db_manager = DatabaseFactory.create_manager('duckdb')
+                        logger.info("DuckDB manager initialized")
+                        print("DuckDB manager ready", file=sys.stderr)
+                    else:
+                        print("No DuckDB database configured - running in database-free mode", file=sys.stderr)
+                        self.db_manager = None
+                        print("Database-free mode active", file=sys.stderr)
+                
+            except Exception as e:
+                print(f"Database initialization failed: {e}", file=sys.stderr)
+                print("Running without database...", file=sys.stderr)
+                self.db_manager = None
+                print("No database mode active", file=sys.stderr)
 
             # Initialize simple fallback client (no external LLM needed)
+            print("Initializing LLM client...", file=sys.stderr)
             self.llm_client = SimpleFallbackClient()
             
             # Check connection (always succeeds for fallback)
             fallback_ready = await self.llm_client.check_connection()
             logger.info("Using rule-based fallback for chart analysis (no external LLM required)")
+            print("LLM client ready", file=sys.stderr)
 
             # Initialize chart generator (it will get config from config_manager itself)
+            print("Initializing chart generator...", file=sys.stderr)
             self.chart_generator = ChartGenerator()
             logger.info("Chart generator initialized")
+            print("Chart generator ready", file=sys.stderr)
 
             # Initialize tool registry and request handler
+            print("Initializing tool registry...", file=sys.stderr)
             self.tool_registry = ToolRegistry(
                 self.db_manager, self.llm_client, self.chart_generator
             )
+            print("Initializing request handler...", file=sys.stderr)
             self.request_handler = RequestHandler(
                 self.db_manager,
                 self.llm_client,
                 self.chart_generator,
                 self.active_requests,
             )
+            print("Request handler ready", file=sys.stderr)
 
-            # Load sample data if enabled in development config
-            # ✅ Access the nested generate_on_startup attribute
-            if self.settings.development.sample_data.generate_on_startup:
+            # Skip sample data loading when no database is available
+            print("Checking sample data configuration...", file=sys.stderr)
+            if self.db_manager and self.settings.development.sample_data.generate_on_startup:
+                print("Loading sample data...", file=sys.stderr)
                 await self._load_sample_data()
+                print("Sample data loaded", file=sys.stderr)
+            else:
+                print("Skipping sample data (no database)", file=sys.stderr)
 
             logger.info("MCP server initialization completed")
+            print("Server initialization complete!", file=sys.stderr)
 
-            # --- START: Consolidated status prints ---
-            print("\n" + "=" * 60)
-            print("MCP Data Visualization Server is ready!")
+            # --- START: Consolidated status prints to stderr ---
+            print("\n" + "=" * 60, file=sys.stderr)
+            print("MCP Data Visualization Server is ready!", file=sys.stderr)
             print(
-                f"🗃️ Database: {self.db_manager.db_path if self.db_manager and hasattr(self.db_manager, 'db_path') else 'Not initialized'}"
+                f"Database: {self.db_manager.db_path if self.db_manager and hasattr(self.db_manager, 'db_path') else 'Database-free mode'}", file=sys.stderr
             )
             print(
-                f"🧠 LLM: Rule-based chart analysis (no external LLM needed)"
+                f"LLM: Rule-based chart analysis (no external LLM needed)", file=sys.stderr
             )
-            print(f"📈 Charts: Plotly HTML widgets")
-            # ✅ Access the nested generate_on_startup attribute
+            print(f"Charts: Plotly HTML widgets", file=sys.stderr)
+            # SUCCESS Access the nested generate_on_startup attribute
             if self.settings.development.sample_data.generate_on_startup:
-                print("🎲 Sample data generated and loaded")
-            print("Connect your MCP client to start visualizing data")
-            print("=" * 60 + "\n")
+                print("Sample data generated and loaded", file=sys.stderr)
+            print("Connect your MCP client to start visualizing data", file=sys.stderr)
+            print("=" * 60 + "\n", file=sys.stderr)
             # --- END: Consolidated status prints ---
 
         except Exception as e:
@@ -158,12 +206,12 @@ class DataVisualizationMCPServer:
             np.random.seed(42)
 
             # Loop through configured sample datasets
-            # ✅ Access the datasets from the settings object
+            # SUCCESS Access the datasets from the settings object
             for dataset_config in self.settings.development.sample_data.datasets:
                 file_path = dataset_config.file
                 table_name = dataset_config.name
 
-                # ✅ FIXED: Ensure Path object is used correctly
+                # SUCCESS FIXED: Ensure Path object is used correctly
                 file_path_obj = Path(file_path)
                 file_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
@@ -207,7 +255,7 @@ class DataVisualizationMCPServer:
                         )
                     df_to_load = pd.DataFrame(customer_data)
                 elif table_name == "products":
-                    # ✅ ADDED: Products sample data generation
+                    # SUCCESS ADDED: Products sample data generation
                     categories = ["Electronics", "Clothing", "Home", "Sports"]
                     products_data = []
                     for i in range(100):
@@ -258,10 +306,10 @@ class DataVisualizationMCPServer:
                 from mcp.server.stdio import stdio_server
 
                 logger.info("Starting MCP server with STDIO transport")
-                print(f"🚀 Starting MCP server...")
-                print(f"📊 Transport: {transport}")
+                print(f"Starting MCP server...", file=sys.stderr)
+                print(f"Transport: {transport}", file=sys.stderr)
                 async with stdio_server() as (read_stream, write_stream):
-                    # ✅ FIXED: Added required capabilities
+                    # SUCCESS FIXED: Added required capabilities
                     await self.server.run(
                         read_stream,
                         write_stream,

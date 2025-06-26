@@ -1,52 +1,101 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyd
+*.py[cod]
+*$py.class
+
+# C extensions
 *.so
-*.env # Environment variables file
-.env/ # Directory for .env files
 
-# Virtual Environment
-.venv/
-venv/
-env/
-# On Windows, you might also have:
-Scripts/
-Include/
-Lib/
-
-# IDE and Editor files
-.vscode/
-.idea/ # PyCharm
-*.sublime-project
-*.sublime-workspace
-.DS_Store # macOS
-Thumbs.db # Windows
-
-# DuckDB
-# The main DuckDB database file
-*.duckdb
-# DuckDB wal (Write-Ahead Log) files
-*.wal
-
-# Logs
-*.log
-logs/
-
-# Data files (if generated or to be kept out of version control)
-data/
-# Or if you have specific data files to ignore:
-*.csv
-*.xlsx
-*.json
-*.parquet
-# If your sample data is generated, you might ignore its output directory
-sample_data/
-
-# Jupyter Notebook files (if you use them)
-.ipynb_checkpoints
-
-# Build artifacts
-dist/
+# Distribution / packaging
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+test_venv/
+test_env/
+*_venv/
+*_env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+*.duckdb
+*.duckdb-wal
+*.duckdb-shm
+logs/
+dist_test/
+.backup/
+# Note: data/ folder is now included for CSV sample files
+
+# Testing
+.pytest_cache/
+test_results/
+htmlcov/
+
+# Claude Desktop backups
+claude_desktop_config.json.backup
+
+# Publishing scripts (contain sensitive info)
+publish.py
+publish.bat
+publish.sh

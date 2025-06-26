@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Interactive Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .dashboard-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header-title {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ffffff, #ecf0f1);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            padding: 30px;
+            border-bottom: 3px solid #e9ecef;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .filter-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #ffffff;
+        }
+        
+        .filter-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .range-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .range-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .range-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .range-value {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .active-filters {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+        }
+        
+        .active-filters h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .active-filters h3::before {
+            content: '🔍';
+            margin-right: 8px;
+        }
+        
+        .filter-display {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .charts-container {
+            padding: 30px;
+            background: white;
+        }
+        
+        .charts-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .charts-header h2 {
+            color: #2c3e50;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .data-summary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .visualizations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+        }
+        
+        .chart-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            border: 1px solid #f1f3f4;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-panel:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+        
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .chart-type-badge {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .chart-content {
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .status-bar.updating {
+            background: #f39c12;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-bar.error {
+            background: #e74c3c;
+        }
+        
+        .status-bar.success {
+            background: #27ae60;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        @media (max-width: 768px) {
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .visualizations-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-title {
+                font-size: 2em;
+            }
+            
+            .quick-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <div class="header-section">
+            <div class="header-content">
+                <h1 class="header-title">Enhanced Analytics Dashboard</h1>
+                <p class="header-subtitle">Interactive data visualization with advanced filtering and real-time updates</p>
+            </div>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="filters-grid">
+                <div class="filter-card">
+                    <label class="filter-label" for="regionSelect">Geographic Region</label>
+                    <select id="regionSelect" class="filter-input">
+                        <option value="">All Regions</option>
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                        <option value="East">East</option>
+                        <option value="West">West</option>
+                    </select>
+                </div>
+                
+                <div class="filter-card">
+                    <label class="filter-label" for="productSelect">Product Category</label>
+                    <select id="productSelect" class="filter-input">
+                        <option value="">All Products</option>
+                        <option value="Product A">Product A</option>
+                        <option value="Product B">Product B</option>
+                        <option value="Product C">Product C</option>
+                        <option value="Product D">Product D</option>
+                    </select>
+                </div>
+                
+                <div class="filter-card">
+                    <label class="filter-label" for="dateRange">Date Range</label>
+                    <input type="range" id="dateRange" class="range-slider" min="1" max="12" value="1" step="1">
+                    <div class="range-display">
+                        <span>Jan 2023</span>
+                        <span class="range-value" id="dateValue">Jan 2023</span>
+                        <span>Dec 2023</span>
+                    </div>
+                </div>
+                
+                <div class="filter-card">
+                    <label class="filter-label" for="revenueThreshold">Revenue Threshold</label>
+                    <input type="range" id="revenueThreshold" class="range-slider" min="0" max="2000" value="0" step="100">
+                    <div class="range-display">
+                        <span>$0</span>
+                        <span class="range-value" id="revenueValue">$0</span>
+                        <span>$2000+</span>
+                    </div>
+                </div>
+                
+                <div class="filter-card">
+                    <label class="filter-label" for="visualizationType">Visualization Type</label>
+                    <select id="visualizationType" class="filter-input">
+                        <option value="bar">Bar Charts</option>
+                        <option value="line">Line Charts</option>
+                        <option value="scatter">Scatter Plots</option>
+                        <option value="pie">Pie Charts</option>
+                        <option value="mixed">Mixed Views</option>
+                    </select>
+                </div>
+                
+                <div class="active-filters">
+                    <h3>Active Filters</h3>
+                    <div id="filtersDisplay" class="filter-display">Loading filter state...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="charts-header">
+                <h2>Data Visualizations</h2>
+                <div class="data-summary" id="dataSummary">
+                    Analyzing <span id="recordCount">0</span> records
+                </div>
+            </div>
+            
+            <div class="quick-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRevenue">$0</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgSales">$0</div>
+                    <div class="stat-label">Avg Sale</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalQuantity">0</div>
+                    <div class="stat-label">Units Sold</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="uniqueCustomers">0</div>
+                    <div class="stat-label">Customers</div>
+                </div>
+            </div>
+            
+            <div class="visualizations-grid">
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Regional Performance</h3>
+                        <span class="chart-type-badge">Regional</span>
+                    </div>
+                    <div class="chart-content">
+                        <div id="loadingChart1" class="loading-spinner"></div>
+                        <div id="visualization1"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Temporal Trends</h3>
+                        <span class="chart-type-badge">Timeline</span>
+                    </div>
+                    <div class="chart-content">
+                        <div id="loadingChart2" class="loading-spinner"></div>
+                        <div id="visualization2"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Product Analysis</h3>
+                        <span class="chart-type-badge">Category</span>
+                    </div>
+                    <div class="chart-content">
+                        <div id="loadingChart3" class="loading-spinner"></div>
+                        <div id="visualization3"></div>
+                    </div>
+                </div>
+                
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Sales Correlation</h3>
+                        <span class="chart-type-badge">Analysis</span>
+                    </div>
+                    <div class="chart-content">
+                        <div id="loadingChart4" class="loading-spinner"></div>
+                        <div id="visualization4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar" id="statusBar">Dashboard Ready</div>
+
+    <script>
+        // Enhanced dashboard state management
+        class DashboardState {
+            constructor() {
+                this.filters = {
+                    region: '',
+                    product: '',
+                    month: 1,
+                    revenueThreshold: 0,
+                    chartType: 'bar'
+                };
+                this.rawData = [];
+                this.filteredData = [];
+                this.isLoading = false;
+            }
+            
+            updateFilter(key, value) {
+                this.filters[key] = value;
+                this.applyFilters();
+                this.updateDisplay();
+                this.renderCharts();
+            }
+            
+            setData(data) {
+                this.rawData = data;
+                this.applyFilters();
+                this.updateDisplay();
+                this.renderCharts();
+            }
+            
+            applyFilters() {
+                this.filteredData = this.rawData.filter(record => {
+                    // Region filter
+                    if (this.filters.region && record.region !== this.filters.region) return false;
+                    
+                    // Product filter
+                    if (this.filters.product && record.product !== this.filters.product) return false;
+                    
+                    // Month filter (extract month from date)
+                    const recordMonth = parseInt(record.date.split('-')[1]);
+                    if (recordMonth > this.filters.month) return false;
+                    
+                    // Revenue threshold filter
+                    if (record.sales_amount < this.filters.revenueThreshold) return false;
+                    
+                    return true;
+                });
+                
+                // FIXED: Proper logging of actual filter values instead of [object Object]
+                const filterSummary = {
+                    region: this.filters.region || 'All Regions',
+                    product: this.filters.product || 'All Products',
+                    monthRange: `Jan - ${this.getMonthName(this.filters.month)} 2023`,
+                    revenueThreshold: `Minimum $${this.filters.revenueThreshold}`,
+                    chartType: this.filters.chartType.toUpperCase(),
+                    resultCount: this.filteredData.length,
+                    totalRecords: this.rawData.length,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                console.log('🔍 FILTERS APPLIED SUCCESSFULLY:', filterSummary);
+                console.log('📊 Sample filtered data:', this.filteredData.slice(0, 3));
+                return this.filteredData;
+            }
+            
+            getMonthName(monthNum) {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                               'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return months[monthNum - 1] || 'Jan';
+            }
+            
+            updateDisplay() {
+                // Update filter display
+                const filterText = JSON.stringify({
+                    region: this.filters.region || 'All Regions',
+                    product: this.filters.product || 'All Products',
+                    month: `${this.getMonthName(this.filters.month)} 2023`,
+                    revenueThreshold: `Minimum $${this.filters.revenueThreshold}`,
+                    chartType: this.filters.chartType.toUpperCase(),
+                    filtered_records: this.filteredData.length,
+                    total_records: this.rawData.length
+                }, null, 2);
+                
+                document.getElementById('filtersDisplay').textContent = filterText;
+                
+                // Update range displays
+                document.getElementById('dateValue').textContent = `${this.getMonthName(this.filters.month)} 2023`;
+                document.getElementById('revenueValue').textContent = `$${this.filters.revenueThreshold}`;
+                
+                // Update record count
+                document.getElementById('recordCount').textContent = this.filteredData.length;
+                
+                // Update quick stats
+                this.updateQuickStats();
+            }
+            
+            updateQuickStats() {
+                if (this.filteredData.length === 0) {
+                    document.getElementById('totalRevenue').textContent = '$0';
+                    document.getElementById('avgSales').textContent = '$0';
+                    document.getElementById('totalQuantity').textContent = '0';
+                    document.getElementById('uniqueCustomers').textContent = '0';
+                    return;
+                }
+                
+                const totalRevenue = this.filteredData.reduce((sum, record) => sum + record.sales_amount, 0);
+                const avgSales = totalRevenue / this.filteredData.length;
+                const totalQuantity = this.filteredData.reduce((sum, record) => sum + record.quantity, 0);
+                const uniqueCustomers = this.filteredData.reduce((sum, record) => sum + record.customer_count, 0);
+                
+                document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+                document.getElementById('avgSales').textContent = `$${avgSales.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+                document.getElementById('totalQuantity').textContent = totalQuantity.toLocaleString();
+                document.getElementById('uniqueCustomers').textContent = uniqueCustomers.toLocaleString();
+            }
+            
+            setLoading(loading) {
+                this.isLoading = loading;
+                const loadingElements = document.querySelectorAll('[id^="loadingChart"]');
+                loadingElements.forEach(el => {
+                    el.style.display = loading ? 'block' : 'none';
+                });
+                
+                if (loading) {
+                    this.updateStatus('updating', 'Updating visualizations...');
+                } else {
+                    this.updateStatus('success', 'Dashboard updated successfully');
+                }
+            }
+            
+            updateStatus(type, message) {
+                const statusBar = document.getElementById('statusBar');
+                statusBar.className = `status-bar ${type}`;
+                statusBar.textContent = message;
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        statusBar.className = 'status-bar';
+                        statusBar.textContent = 'Dashboard Ready';
+                    }, 2000);
+                }
+            }
+            
+            renderCharts() {
+                this.setLoading(true);
+                
+                try {
+                    console.log(`🎨 Rendering charts with ${this.filteredData.length} filtered records using ${this.filters.chartType} chart type`);
+                    
+                    // Validate that we have data to work with
+                    if (this.filteredData.length === 0) {
+                        console.warn('⚠️ No data available after filtering - showing empty charts');
+                        // Clear all charts
+                        ['visualization1', 'visualization2', 'visualization3', 'visualization4'].forEach(id => {
+                            Plotly.newPlot(id, [], {
+                                title: { text: 'No Data Available', font: { size: 16 } },
+                                paper_bgcolor: 'rgba(0,0,0,0)',
+                                plot_bgcolor: 'rgba(0,0,0,0)'
+                            });
+                        });
+                        this.setLoading(false);
+                        return;
+                    }
+                    
+                    // Chart 1: Regional Performance
+                    const regionData = this.aggregateByRegion();
+                    if (Object.keys(regionData).length > 0) {
+                        this.createRegionalChart(regionData);
+                    }
+                    
+                    // Chart 2: Temporal Trends
+                    const temporalData = this.aggregateByTime();
+                    if (Object.keys(temporalData).length > 0) {
+                        this.createTemporalChart(temporalData);
+                    }
+                    
+                    // Chart 3: Product Analysis
+                    const productData = this.aggregateByProduct();
+                    if (Object.keys(productData).length > 0) {
+                        this.createProductChart(productData);
+                    }
+                    
+                    // Chart 4: Sales Correlation
+                    this.createCorrelationChart();
+                    
+                    setTimeout(() => this.setLoading(false), 500);
+                    console.log('✅ All charts rendered successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Error rendering charts:', error);
+                    this.updateStatus('error', 'Error updating charts');
+                    this.setLoading(false);
+                }
+            }
+            
+            aggregateByRegion() {
+                const regionMap = {};
+                this.filteredData.forEach(record => {
+                    if (!regionMap[record.region]) {
+                        regionMap[record.region] = { sales: 0, quantity: 0, customers: 0 };
+                    }
+                    regionMap[record.region].sales += record.sales_amount;
+                    regionMap[record.region].quantity += record.quantity;
+                    regionMap[record.region].customers += record.customer_count;
+                });
+                return regionMap;
+            }
+            
+            aggregateByTime() {
+                const timeMap = {};
+                this.filteredData.forEach(record => {
+                    const month = record.date.substring(0, 7); // YYYY-MM
+                    if (!timeMap[month]) {
+                        timeMap[month] = { sales: 0, quantity: 0 };
+                    }
+                    timeMap[month].sales += record.sales_amount;
+                    timeMap[month].quantity += record.quantity;
+                });
+                return timeMap;
+            }
+            
+            aggregateByProduct() {
+                const productMap = {};
+                this.filteredData.forEach(record => {
+                    if (!productMap[record.product]) {
+                        productMap[record.product] = { sales: 0, quantity: 0, customers: 0 };
+                    }
+                    productMap[record.product].sales += record.sales_amount;
+                    productMap[record.product].quantity += record.quantity;
+                    productMap[record.product].customers += record.customer_count;
+                });
+                return productMap;
+            }
+            
+            createRegionalChart(data) {
+                const chartType = this.filters.chartType;
+                const regions = Object.keys(data);
+                const sales = regions.map(region => data[region].sales);
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+                
+                let chartData;
+                
+                switch(chartType) {
+                    case 'pie':
+                        chartData = [{
+                            labels: regions,
+                            values: sales,
+                            type: 'pie',
+                            marker: { colors: colors },
+                            textinfo: 'label+percent',
+                            textposition: 'outside',
+                            hovertemplate: '%{label}<br>Sales: $%{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'scatter':
+                        chartData = [{
+                            x: regions,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'markers',
+                            marker: {
+                                color: colors.slice(0, regions.length),
+                                size: sales.map(s => Math.max(10, s/100)),
+                                line: { color: 'white', width: 2 }
+                            },
+                            name: 'Regional Sales',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'line':
+                        chartData = [{
+                            x: regions,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: { color: '#667eea', width: 3 },
+                            marker: { 
+                                color: '#764ba2', 
+                                size: 10,
+                                line: { color: 'white', width: 2 }
+                            },
+                            name: 'Regional Trends',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    default: // bar or mixed
+                        chartData = [{
+                            x: regions,
+                            y: sales,
+                            type: 'bar',
+                            marker: {
+                                color: colors.slice(0, regions.length),
+                                line: { color: 'white', width: 1 }
+                            },
+                            name: 'Regional Sales',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                }
+                
+                const layout = {
+                    title: false,
+                    margin: { l: 50, r: 50, t: 20, b: 50 },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Inter, sans-serif', size: 12 },
+                    showlegend: false
+                };
+                
+                if (chartType !== 'pie') {
+                    layout.xaxis = { title: 'Region' };
+                    layout.yaxis = { title: 'Sales ($)' };
+                }
+                
+                Plotly.newPlot('visualization1', chartData, layout, {responsive: true});
+                console.log(`✅ Regional chart updated to ${chartType} type`);
+            }
+            
+            createTemporalChart(data) {
+                const chartType = this.filters.chartType;
+                const months = Object.keys(data).sort();
+                const sales = months.map(month => data[month].sales);
+                
+                let chartData;
+                
+                switch(chartType) {
+                    case 'pie':
+                        chartData = [{
+                            labels: months,
+                            values: sales,
+                            type: 'pie',
+                            marker: { colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'] },
+                            textinfo: 'label+percent',
+                            textposition: 'outside',
+                            hovertemplate: '%{label}<br>Sales: $%{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'bar':
+                        chartData = [{
+                            x: months,
+                            y: sales,
+                            type: 'bar',
+                            marker: {
+                                color: sales,
+                                colorscale: 'Viridis',
+                                line: { color: 'white', width: 1 }
+                            },
+                            name: 'Monthly Sales',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'scatter':
+                        chartData = [{
+                            x: months,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'markers',
+                            marker: {
+                                size: sales.map(s => Math.max(8, s/150)),
+                                color: '#764ba2',
+                                line: { color: 'white', width: 2 }
+                            },
+                            name: 'Monthly Sales',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    default: // line or mixed
+                        chartData = [{
+                            x: months,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: { 
+                                color: '#667eea', 
+                                width: 3,
+                                shape: 'spline'
+                            },
+                            marker: { 
+                                size: 8, 
+                                color: '#764ba2',
+                                line: { color: 'white', width: 2 }
+                            },
+                            fill: 'tonexty',
+                            fillcolor: 'rgba(102, 126, 234, 0.1)',
+                            name: 'Sales Trend',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                }
+                
+                const layout = {
+                    title: false,
+                    margin: { l: 50, r: 50, t: 20, b: 50 },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Inter, sans-serif', size: 12 },
+                    showlegend: false
+                };
+                
+                if (chartType !== 'pie') {
+                    layout.xaxis = { title: 'Month' };
+                    layout.yaxis = { title: 'Sales ($)' };
+                }
+                
+                Plotly.newPlot('visualization2', chartData, layout, {responsive: true});
+                console.log(`✅ Temporal chart updated to ${chartType} type`);
+            }
+            
+            createProductChart(data) {
+                const chartType = this.filters.chartType;
+                const products = Object.keys(data);
+                const sales = products.map(product => data[product].sales);
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'];
+                
+                let chartData;
+                
+                switch(chartType) {
+                    case 'pie':
+                        chartData = [{
+                            labels: products,
+                            values: sales,
+                            type: 'pie',
+                            marker: { colors: colors },
+                            textinfo: 'label+percent',
+                            textposition: 'outside',
+                            hovertemplate: '%{label}<br>Sales: $%{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'line':
+                        chartData = [{
+                            x: products,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            line: { color: '#667eea', width: 3 },
+                            marker: { 
+                                color: '#764ba2', 
+                                size: 10,
+                                line: { color: 'white', width: 2 }
+                            },
+                            name: 'Product Performance',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'scatter':
+                        chartData = [{
+                            x: products,
+                            y: sales,
+                            type: 'scatter',
+                            mode: 'markers',
+                            marker: {
+                                size: sales.map(s => Math.max(10, s/100)),
+                                color: sales,
+                                colorscale: 'Viridis',
+                                showscale: true,
+                                colorbar: { title: 'Sales' },
+                                line: { color: 'white', width: 2 }
+                            },
+                            name: 'Product Sales',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    default: // bar or mixed
+                        chartData = [{
+                            x: products,
+                            y: sales,
+                            type: 'bar',
+                            marker: {
+                                color: sales,
+                                colorscale: 'Viridis',
+                                showscale: false,
+                                line: { color: 'white', width: 1 }
+                            },
+                            name: 'Product Performance',
+                            hovertemplate: '%{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                }
+                
+                const layout = {
+                    title: false,
+                    margin: { l: 50, r: 50, t: 20, b: 50 },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Inter, sans-serif', size: 12 },
+                    showlegend: false
+                };
+                
+                if (chartType !== 'pie') {
+                    layout.xaxis = { title: 'Product' };
+                    layout.yaxis = { title: 'Sales ($)' };
+                }
+                
+                Plotly.newPlot('visualization3', chartData, layout, {responsive: true});
+                console.log(`✅ Product chart updated to ${chartType} type`);
+            }
+            
+            createCorrelationChart() {
+                const chartType = this.filters.chartType;
+                const quantities = this.filteredData.map(record => record.quantity);
+                const salesAmounts = this.filteredData.map(record => record.sales_amount);
+                const regions = this.filteredData.map(record => record.region);
+                
+                let chartData;
+                
+                switch(chartType) {
+                    case 'pie':
+                        // For pie chart, aggregate by region
+                        const regionTotals = {};
+                        this.filteredData.forEach(record => {
+                            regionTotals[record.region] = (regionTotals[record.region] || 0) + record.sales_amount;
+                        });
+                        
+                        chartData = [{
+                            labels: Object.keys(regionTotals),
+                            values: Object.values(regionTotals),
+                            type: 'pie',
+                            marker: { colors: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe'] },
+                            textinfo: 'label+percent',
+                            textposition: 'outside',
+                            hovertemplate: '%{label}<br>Sales: $%{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'bar':
+                        // Create bar chart of average sales by quantity ranges
+                        const quantityRanges = ['0-20', '21-40', '41-60', '61-80', '81+'];
+                        const rangeTotals = [0, 0, 0, 0, 0];
+                        
+                        this.filteredData.forEach(record => {
+                            const q = record.quantity;
+                            if (q <= 20) rangeTotals[0] += record.sales_amount;
+                            else if (q <= 40) rangeTotals[1] += record.sales_amount;
+                            else if (q <= 60) rangeTotals[2] += record.sales_amount;
+                            else if (q <= 80) rangeTotals[3] += record.sales_amount;
+                            else rangeTotals[4] += record.sales_amount;
+                        });
+                        
+                        chartData = [{
+                            x: quantityRanges,
+                            y: rangeTotals,
+                            type: 'bar',
+                            marker: {
+                                color: rangeTotals,
+                                colorscale: 'Viridis',
+                                line: { color: 'white', width: 1 }
+                            },
+                            name: 'Sales by Quantity Range',
+                            hovertemplate: '%{x} units<br>Total Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    case 'line':
+                        // Create line chart showing sales trend by quantity
+                        const sortedData = [...this.filteredData].sort((a, b) => a.quantity - b.quantity);
+                        
+                        chartData = [{
+                            x: sortedData.map(record => record.quantity),
+                            y: sortedData.map(record => record.sales_amount),
+                            type: 'scatter',
+                            mode: 'lines',
+                            line: { color: '#667eea', width: 2 },
+                            name: 'Sales Trend',
+                            hovertemplate: 'Quantity: %{x}<br>Sales: $%{y:,.0f}<extra></extra>'
+                        }];
+                        break;
+                        
+                    default: // scatter or mixed
+                        chartData = [{
+                            x: quantities,
+                            y: salesAmounts,
+                            mode: 'markers',
+                            type: 'scatter',
+                            marker: {
+                                size: this.filteredData.map(record => Math.max(5, record.customer_count * 0.8)),
+                                color: salesAmounts,
+                                colorscale: 'Plasma',
+                                showscale: true,
+                                colorbar: { title: 'Sales Amount' },
+                                opacity: 0.7,
+                                line: { color: 'white', width: 1 }
+                            },
+                            text: this.filteredData.map(record => `${record.region} - ${record.product}<br>Customers: ${record.customer_count}`),
+                            hovertemplate: '%{text}<br>Quantity: %{x}<br>Sales: $%{y:,.0f}<extra></extra>',
+                            name: 'Sales vs Quantity'
+                        }];
+                }
+                
+                const layout = {
+                    title: false,
+                    margin: { l: 50, r: 50, t: 20, b: 50 },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Inter, sans-serif', size: 12 },
+                    showlegend: false
+                };
+                
+                if (chartType !== 'pie') {
+                    layout.xaxis = { title: chartType === 'bar' ? 'Quantity Range' : 'Quantity Sold' };
+                    layout.yaxis = { title: 'Sales Amount ($)' };
+                }
+                
+                Plotly.newPlot('visualization4', chartData, layout, {responsive: true});
+                console.log(`✅ Correlation chart updated to ${chartType} type`);
+            }
+        }
+        
+        // Initialize dashboard
+        const dashboard = new DashboardState();
+        
+        // Sample data with more realistic structure
+        const enhancedSampleData = [
+            {date: '2023-01-01', region: 'North', product: 'Product A', sales_amount: 1099.34, quantity: 55, customer_count: 19},
+            {date: '2023-01-01', region: 'North', product: 'Product B', sales_amount: 972.35, quantity: 52, customer_count: 31},
+            {date: '2023-01-01', region: 'North', product: 'Product C', sales_amount: 907.32, quantity: 46, customer_count: 24},
+            {date: '2023-01-01', region: 'North', product: 'Product D', sales_amount: 906.85, quantity: 52, customer_count: 22},
+            {date: '2023-01-01', region: 'South', product: 'Product A', sales_amount: 1293.13, quantity: 43, customer_count: 26},
+            {date: '2023-01-01', region: 'South', product: 'Product B', sales_amount: 954.84, quantity: 52, customer_count: 22},
+            {date: '2023-01-01', region: 'South', product: 'Product C', sales_amount: 879.66, quantity: 40, customer_count: 21},
+            {date: '2023-01-01', region: 'South', product: 'Product D', sales_amount: 1370.46, quantity: 46, customer_count: 26},
+            {date: '2023-01-01', region: 'East', product: 'Product A', sales_amount: 1147.69, quantity: 38, customer_count: 13},
+            {date: '2023-01-01', region: 'East', product: 'Product B', sales_amount: 1250.75, quantity: 45, customer_count: 28},
+            {date: '2023-01-01', region: 'West', product: 'Product A', sales_amount: 980.25, quantity: 35, customer_count: 18},
+            {date: '2023-01-01', region: 'West', product: 'Product C', sales_amount: 1150.80, quantity: 48, customer_count: 25},
+            {date: '2023-02-01', region: 'North', product: 'Product A', sales_amount: 1200.50, quantity: 60, customer_count: 22},
+            {date: '2023-02-01', region: 'South', product: 'Product B', sales_amount: 1100.25, quantity: 55, customer_count: 28},
+            {date: '2023-03-01', region: 'East', product: 'Product C', sales_amount: 1350.75, quantity: 65, customer_count: 30},
+            {date: '2023-02-01', region: 'West', product: 'Product D', sales_amount: 1450.90, quantity: 58, customer_count: 32},
+            {date: '2023-03-01', region: 'North', product: 'Product B', sales_amount: 1275.40, quantity: 62, customer_count: 29},
+            {date: '2023-03-01', region: 'South', product: 'Product A', sales_amount: 1180.20, quantity: 51, customer_count: 24}
+        ];
+        
+        // Set up event listeners with enhanced error handling
+        function setupEventListeners() {
+            // Region filter
+            const regionSelect = document.getElementById('regionSelect');
+            regionSelect.addEventListener('change', (e) => {
+                console.log('🌍 Region filter changed to:', e.target.value || 'All Regions');
+                dashboard.updateFilter('region', e.target.value);
+            });
+            
+            // Product filter
+            const productSelect = document.getElementById('productSelect');
+            productSelect.addEventListener('change', (e) => {
+                console.log('📦 Product filter changed to:', e.target.value || 'All Products');
+                dashboard.updateFilter('product', e.target.value);
+            });
+            
+            // Date range slider
+            const dateRange = document.getElementById('dateRange');
+            dateRange.addEventListener('input', (e) => {
+                const monthNum = parseInt(e.target.value);
+                const monthName = dashboard.getMonthName(monthNum);
+                console.log('📅 Date range changed to:', `Jan - ${monthName} 2023`);
+                dashboard.updateFilter('month', monthNum);
+            });
+            
+            // Revenue threshold slider
+            const revenueThreshold = document.getElementById('revenueThreshold');
+            revenueThreshold.addEventListener('input', (e) => {
+                const threshold = parseInt(e.target.value);
+                console.log('💰 Revenue threshold changed to:', `$${threshold} minimum`);
+                dashboard.updateFilter('revenueThreshold', threshold);
+            });
+            
+            // Chart type selector
+            const visualizationType = document.getElementById('visualizationType');
+            visualizationType.addEventListener('change', (e) => {
+                console.log('📊 Chart type changed to:', e.target.value.toUpperCase());
+                dashboard.updateFilter('chartType', e.target.value);
+            });
+            
+            console.log('✅ All event listeners set up successfully');
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Enhanced Interactive Dashboard Initializing...');
+            console.log('📋 Dashboard Features:');
+            console.log('  ✅ Fixed filter application logic');
+            console.log('  ✅ Proper console logging (no [object Object])');
+            console.log('  ✅ Working chart type switching');
+            console.log('  ✅ Real-time visualization updates');
+            console.log('  ✅ Multiple chart types: bar, line, scatter, pie');
+            
+            try {
+                setupEventListeners();
+                console.log('🎛️ Event listeners configured successfully');
+                
+                dashboard.setData(enhancedSampleData);
+                console.log(`📊 Sample data loaded: ${enhancedSampleData.length} records`);
+                console.log('🎉 Enhanced dashboard loaded successfully with ALL FIXES APPLIED!');
+                console.log('');
+                console.log('🔧 Try these actions to test the fixes:');
+                console.log('  • Change region/product filters → Watch console for filter values');
+                console.log('  • Adjust date/revenue sliders → See immediate chart updates');
+                console.log('  • Switch chart types → All charts change instantly');
+                console.log('  • All actions trigger proper filter application');
+                
+            } catch (error) {
+                console.error('❌ Error during dashboard initialization:', error);
+                dashboard.updateStatus('error', 'Dashboard initialization failed');
+            }
+        });
+        
+        // Handle window resize for responsive charts
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                ['visualization1', 'visualization2', 'visualization3', 'visualization4'].forEach(id => {
+                    if (document.getElementById(id).children.length > 0) {
+                        Plotly.Plots.resize(id);
+                    }
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html>

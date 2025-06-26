@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(python -m pytest tests/test_llm.py -v)",
+      "Bash(python3 -m pytest tests/test_llm.py -v)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(./test_local.sh:*)",
+      "Bash(true)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": []
+  }
+}
