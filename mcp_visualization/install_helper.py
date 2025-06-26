@@ -210,6 +210,51 @@ def show_quick_start_guide(sample_db_path):
     print("   * Check server logs in Claude Desktop if tools don't appear")
     print("=" * 50)
 
+def print_post_install_instructions(sample_db_path):
+    """Show post-installation instructions and next steps"""
+    print("\n" + "=" * 60)
+    print("INSTALLATION COMPLETE!")
+    print("=" * 60)
+    
+    if sample_db_path:
+        print(f"\nSample Database Ready: {sample_db_path}")
+    
+    print("\nNEXT STEPS:")
+    print("1. Choose your database option:")
+    print("   a) DuckDB (Local): mcp-viz configure")
+    print("   b) Databricks (Enterprise): mcp-viz databricks configure")
+    print("\n2. Restart Claude Desktop completely")
+    print("\n3. Start chatting with Claude about your data!")
+    
+    print("\nQUICK START COMMANDS:")
+    print("   mcp-viz configure              # Setup DuckDB")
+    print("   mcp-viz databricks configure   # Setup Databricks")
+    print("   mcp-viz status                 # Check configuration")
+    print("   mcp-viz databricks test        # Test Databricks connection")
+    
+    print("\nSAMPLE DATABASES:")
+    print("   Built-in sample data: Already included in your installation")
+    print("   More sample databases: https://www.timestored.com/data/sample/duckdb")
+    print("   Financial data, NYC taxi, TPC-H benchmarks and more!")
+    
+    print("\nTRY THESE COMMANDS IN CLAUDE DESKTOP:")
+    print('   "What tables are available?"')
+    print('   "Create a bar chart of sales by region"')
+    print('   "Show me monthly revenue trends"')
+    print('   "Load CSV from Downloads/mydata.csv"')
+    
+    if sample_db_path:
+        print(f"\nYour sample database location:")
+        print(f"   {sample_db_path}")
+    
+    print("\nDOCUMENTATION:")
+    print("   GitHub: https://github.com/your-username/mcp-visualization-duckdb")
+    print("   Help: mcp-viz --help")
+    
+    print("\n" + "=" * 60)
+    print("Happy data visualization with Claude Desktop!")
+    print("=" * 60)
+
 def main():
     """Main installation helper"""
     try:
@@ -220,14 +265,12 @@ def main():
             # Show quick start guide
             show_quick_start_guide(sample_db_path)
             
-            print(f"\nInstallation complete!")
-            print(f"   Sample database: {sample_db_path}")
-            print(f"   Next step: Run 'mcp-viz configure'")
+            print_post_install_instructions(sample_db_path)
             return 0
         else:
             print("\nInstallation completed with warnings")
             print("   Sample database extraction failed")
-            print("   You can still use the server with your own databases")
+            print_post_install_instructions(None)
             return 1
             
     except Exception as e:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-visualization-duckdb"
-version = "0.1.1"
+version = "0.1.4"
 description = "Transform natural language into beautiful data visualizations using Claude Desktop with DuckDB and Databricks support"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -71,6 +71,7 @@ Issues = "https://github.com/your-username/mcp-visualization-duckdb/issues"
 
 [project.scripts]
 mcp-viz = "mcp_visualization.cli:main"
+mcp-viz-setup = "mcp_visualization.install_helper:main"
 build-samples = "build_sample_db:main"
 
 [tool.setuptools.packages.find]

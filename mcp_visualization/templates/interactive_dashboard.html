@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Data Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .dashboard-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .controls-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .control-group select,
+        .control-group input[type="range"] {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .range-container {
+            position: relative;
+        }
+        
+        .range-values {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #6c757d;
+        }
+        
+        .current-value {
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .filter-summary {
+            grid-column: 1 / -1;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .filter-summary h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+            font-size: 14px;
+        }
+        
+        .filter-summary pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e1e5e9;
+            margin: 0;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .charts-section {
+            padding: 20px;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .chart-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .chart-placeholder {
+            height: 400px;
+            border: 2px dashed #dee2e6;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .status-indicator.updating {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .status-indicator.error {
+            background: #dc3545;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Interactive Sales Dashboard</h1>
+            <p>Real-time data visualization with dynamic filtering</p>
+        </div>
+        
+        <div class="controls-section">
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label for="regionFilter">Region Filter</label>
+                    <select id="regionFilter">
+                        <option value="">All Regions</option>
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                        <option value="East">East</option>
+                        <option value="West">West</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="productFilter">Product Filter</label>
+                    <select id="productFilter">
+                        <option value="">All Products</option>
+                        <option value="Product A">Product A</option>
+                        <option value="Product B">Product B</option>
+                        <option value="Product C">Product C</option>
+                        <option value="Product D">Product D</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="yearFilter">Year Range</label>
+                    <div class="range-container">
+                        <input type="range" id="yearFilter" min="2023" max="2024" value="2023" step="1">
+                        <div class="range-values">
+                            <span>2023</span>
+                            <span class="current-value" id="yearValue">2023</span>
+                            <span>2024</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="salesThreshold">Sales Threshold</label>
+                    <div class="range-container">
+                        <input type="range" id="salesThreshold" min="0" max="2000" value="0" step="50">
+                        <div class="range-values">
+                            <span>$0</span>
+                            <span class="current-value" id="thresholdValue">$0</span>
+                            <span>$2000</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="chartType">Chart Type</label>
+                    <select id="chartType">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                        <option value="pie">Pie Chart</option>
+                    </select>
+                </div>
+                
+                <div class="filter-summary">
+                    <h4>Current Filters Applied:</h4>
+                    <pre id="filterDisplay">Loading filters...</pre>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-section">
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <div class="chart-title">Sales by Region</div>
+                    <div id="chart1" class="chart-placeholder">Loading chart...</div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Sales Over Time</div>
+                    <div id="chart2" class="chart-placeholder">Loading chart...</div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Product Performance</div>
+                    <div id="chart3" class="chart-placeholder">Loading chart...</div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">Revenue Distribution</div>
+                    <div id="chart4" class="chart-placeholder">Loading chart...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-indicator" id="statusIndicator">Ready</div>
+
+    <script>
+        // Global variables
+        let dashboardData = null;
+        let currentFilters = {
+            region: '',
+            product: '',
+            year: 2023,
+            salesThreshold: 0,
+            chartType: 'bar'
+        };
+        
+        // Sample data - in a real implementation, this would come from the server
+        const sampleData = [
+            {date: '2023-01-01', region: 'North', product: 'Product A', sales_amount: 1099.34, quantity: 55, customer_count: 19},
+            {date: '2023-01-01', region: 'North', product: 'Product B', sales_amount: 972.35, quantity: 52, customer_count: 31},
+            {date: '2023-01-01', region: 'North', product: 'Product C', sales_amount: 907.32, quantity: 46, customer_count: 24},
+            {date: '2023-01-01', region: 'North', product: 'Product D', sales_amount: 906.85, quantity: 52, customer_count: 22},
+            {date: '2023-01-01', region: 'South', product: 'Product A', sales_amount: 1293.13, quantity: 43, customer_count: 26},
+            {date: '2023-01-01', region: 'South', product: 'Product B', sales_amount: 954.84, quantity: 52, customer_count: 22},
+            {date: '2023-01-01', region: 'South', product: 'Product C', sales_amount: 879.66, quantity: 40, customer_count: 21},
+            {date: '2023-01-01', region: 'South', product: 'Product D', sales_amount: 1370.46, quantity: 46, customer_count: 26},
+            {date: '2023-01-01', region: 'East', product: 'Product A', sales_amount: 1147.69, quantity: 38, customer_count: 13},
+            {date: '2023-01-01', region: 'East', product: 'Product B', sales_amount: 1250.75, quantity: 45, customer_count: 28},
+            {date: '2023-01-01', region: 'West', product: 'Product A', sales_amount: 980.25, quantity: 35, customer_count: 18},
+            {date: '2023-01-01', region: 'West', product: 'Product C', sales_amount: 1150.80, quantity: 48, customer_count: 25},
+            {date: '2023-02-01', region: 'North', product: 'Product A', sales_amount: 1200.50, quantity: 60, customer_count: 22},
+            {date: '2023-02-01', region: 'South', product: 'Product B', sales_amount: 1100.25, quantity: 55, customer_count: 28},
+            {date: '2023-03-01', region: 'East', product: 'Product C', sales_amount: 1350.75, quantity: 65, customer_count: 30}
+        ];
+        
+        // Utility function to properly format filter values for logging
+        function formatFilters(filters) {
+            const formatted = {};
+            for (const [key, value] of Object.entries(filters)) {
+                if (value === null || value === undefined) {
+                    formatted[key] = 'null';
+                } else if (typeof value === 'object') {
+                    formatted[key] = JSON.stringify(value, null, 2);
+                } else {
+                    formatted[key] = String(value);
+                }
+            }
+            return formatted;
+        }
+        
+        // Function to update filter display
+        function updateFilterDisplay() {
+            const formattedFilters = formatFilters(currentFilters);
+            const filterText = JSON.stringify(formattedFilters, null, 2);
+            document.getElementById('filterDisplay').textContent = filterText;
+            
+            // FIXED: Properly log actual filter values instead of [object Object]
+            console.log('Filters applied:', formattedFilters);
+        }
+        
+        // Function to filter data based on current filters
+        function filterData(data) {
+            return data.filter(row => {
+                // Region filter
+                if (currentFilters.region && row.region !== currentFilters.region) {
+                    return false;
+                }
+                
+                // Product filter
+                if (currentFilters.product && row.product !== currentFilters.product) {
+                    return false;
+                }
+                
+                // Year filter (extract year from date)
+                const rowYear = parseInt(row.date.split('-')[0]);
+                if (rowYear !== currentFilters.year) {
+                    return false;
+                }
+                
+                // Sales threshold filter
+                if (row.sales_amount < currentFilters.salesThreshold) {
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        // Function to create charts based on filtered data
+        function createCharts(data) {
+            updateStatus('updating', 'Updating charts...');
+            
+            try {
+                // Chart 1: Sales by Region
+                const regionData = {};
+                data.forEach(row => {
+                    if (!regionData[row.region]) {
+                        regionData[row.region] = 0;
+                    }
+                    regionData[row.region] += row.sales_amount;
+                });
+                
+                const chart1Data = [{
+                    x: Object.keys(regionData),
+                    y: Object.values(regionData),
+                    type: currentFilters.chartType === 'bar' ? 'bar' : 'scatter',
+                    mode: currentFilters.chartType === 'scatter' ? 'markers' : undefined,
+                    marker: {
+                        color: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
+                        size: currentFilters.chartType === 'scatter' ? 12 : undefined
+                    }
+                }];
+                
+                Plotly.newPlot('chart1', chart1Data, {
+                    title: 'Sales by Region',
+                    xaxis: { title: 'Region' },
+                    yaxis: { title: 'Sales Amount ($)' }
+                });
+                
+                // Chart 2: Sales Over Time
+                const timeData = {};
+                data.forEach(row => {
+                    const month = row.date.substring(0, 7); // YYYY-MM
+                    if (!timeData[month]) {
+                        timeData[month] = 0;
+                    }
+                    timeData[month] += row.sales_amount;
+                });
+                
+                const sortedTimeData = Object.keys(timeData).sort().map(month => ({
+                    x: month,
+                    y: timeData[month]
+                }));
+                
+                const chart2Data = [{
+                    x: sortedTimeData.map(d => d.x),
+                    y: sortedTimeData.map(d => d.y),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#667eea', width: 3 },
+                    marker: { size: 8, color: '#667eea' }
+                }];
+                
+                Plotly.newPlot('chart2', chart2Data, {
+                    title: 'Sales Over Time',
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Sales Amount ($)' }
+                });
+                
+                // Chart 3: Product Performance
+                const productData = {};
+                data.forEach(row => {
+                    if (!productData[row.product]) {
+                        productData[row.product] = { sales: 0, quantity: 0 };
+                    }
+                    productData[row.product].sales += row.sales_amount;
+                    productData[row.product].quantity += row.quantity;
+                });
+                
+                if (currentFilters.chartType === 'pie') {
+                    const chart3Data = [{
+                        labels: Object.keys(productData),
+                        values: Object.values(productData).map(d => d.sales),
+                        type: 'pie',
+                        marker: {
+                            colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
+                        }
+                    }];
+                    
+                    Plotly.newPlot('chart3', chart3Data, {
+                        title: 'Product Sales Distribution'
+                    });
+                } else {
+                    const chart3Data = [{
+                        x: Object.keys(productData),
+                        y: Object.values(productData).map(d => d.sales),
+                        type: 'bar',
+                        marker: { color: '#45B7D1' }
+                    }];
+                    
+                    Plotly.newPlot('chart3', chart3Data, {
+                        title: 'Product Performance',
+                        xaxis: { title: 'Product' },
+                        yaxis: { title: 'Sales Amount ($)' }
+                    });
+                }
+                
+                // Chart 4: Revenue Distribution (Scatter plot of sales vs quantity)
+                const chart4Data = [{
+                    x: data.map(row => row.quantity),
+                    y: data.map(row => row.sales_amount),
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: {
+                        size: data.map(row => row.customer_count * 0.5 + 5),
+                        color: data.map(row => row.sales_amount),
+                        colorscale: 'Viridis',
+                        showscale: true,
+                        colorbar: { title: 'Sales Amount' }
+                    },
+                    text: data.map(row => `${row.region} - ${row.product}`),
+                    textposition: 'top center'
+                }];
+                
+                Plotly.newPlot('chart4', chart4Data, {
+                    title: 'Sales vs Quantity (bubble size = customer count)',
+                    xaxis: { title: 'Quantity' },
+                    yaxis: { title: 'Sales Amount ($)' }
+                });
+                
+                updateStatus('ready', 'Ready');
+                
+            } catch (error) {
+                console.error('Error creating charts:', error);
+                updateStatus('error', 'Error updating charts');
+            }
+        }
+        
+        // Function to update status indicator
+        function updateStatus(status, message) {
+            const indicator = document.getElementById('statusIndicator');
+            indicator.className = `status-indicator ${status}`;
+            indicator.textContent = message;
+        }
+        
+        // Function to handle filter changes
+        function handleFilterChange() {
+            // Update current filters from UI
+            currentFilters.region = document.getElementById('regionFilter').value;
+            currentFilters.product = document.getElementById('productFilter').value;
+            currentFilters.year = parseInt(document.getElementById('yearFilter').value);
+            currentFilters.salesThreshold = parseInt(document.getElementById('salesThreshold').value);
+            currentFilters.chartType = document.getElementById('chartType').value;
+            
+            // Update range value displays
+            document.getElementById('yearValue').textContent = currentFilters.year;
+            document.getElementById('thresholdValue').textContent = `$${currentFilters.salesThreshold}`;
+            
+            // Update filter display
+            updateFilterDisplay();
+            
+            // Filter data and update charts
+            const filteredData = filterData(sampleData);
+            createCharts(filteredData);
+            
+            console.log(`Filtered data points: ${filteredData.length} out of ${sampleData.length}`);
+        }
+        
+        // Initialize dashboard
+        function initializeDashboard() {
+            console.log('Initializing dashboard...');
+            
+            // Set up event listeners for all controls
+            document.getElementById('regionFilter').addEventListener('change', handleFilterChange);
+            document.getElementById('productFilter').addEventListener('change', handleFilterChange);
+            document.getElementById('yearFilter').addEventListener('input', handleFilterChange);
+            document.getElementById('salesThreshold').addEventListener('input', handleFilterChange);
+            document.getElementById('chartType').addEventListener('change', handleFilterChange);
+            
+            // Initial load
+            updateFilterDisplay();
+            const filteredData = filterData(sampleData);
+            createCharts(filteredData);
+            
+            console.log('Dashboard initialized successfully');
+        }
+        
+        // Start dashboard when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (dashboardData) {
+                setTimeout(function() {
+                    Plotly.Plots.resize('chart1');
+                    Plotly.Plots.resize('chart2');
+                    Plotly.Plots.resize('chart3');
+                    Plotly.Plots.resize('chart4');
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -191,15 +191,23 @@ class DatabricksCredentialManager:
             
             # Test connection
             print("\nTesting connection...")
-            if self.test_connection(server_hostname, http_path, token):
-                print("Connection successful!")
-                return {
-                    "server_hostname": server_hostname,
-                    "http_path": http_path,
-                    "token": token
-                }
-            else:
-                print("Connection failed. Please check your credentials.")
+            try:
+                if self.test_connection(server_hostname, http_path, token):
+                    print("Connection successful!")
+                    return {
+                        "server_hostname": server_hostname,
+                        "http_path": http_path,
+                        "token": token
+                    }
+                else:
+                    print("Connection failed. Please check your credentials.")
+                    return None
+            except Exception as test_error:
+                print(f"Connection test failed with error: {test_error}")
+                print(f"Error type: {type(test_error).__name__}")
+                import traceback
+                print("Full error details:")
+                traceback.print_exc()
                 return None
                 
         except KeyboardInterrupt:

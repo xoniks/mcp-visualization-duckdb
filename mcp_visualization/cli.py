@@ -267,7 +267,7 @@ def configure(server_hostname, http_path, token, interactive, test_connection, u
     console.print("DATABRICKS Databricks Configuration\n")
     
     try:
-        from .databricks.credentials import DatabricksCredentialManager
+        from mcp_visualization.databricks_integration.credentials import DatabricksCredentialManager
         
         cred_manager = DatabricksCredentialManager()
         
@@ -296,10 +296,18 @@ def configure(server_hostname, http_path, token, interactive, test_connection, u
             # Test connection if requested
             if test_connection:
                 console.print("Testing connection...")
-                if not cred_manager.test_connection(server_hostname, http_path, token):
-                    print_error("Connection test failed. Please check your credentials.")
+                try:
+                    if not cred_manager.test_connection(server_hostname, http_path, token):
+                        print_error("Connection test failed. Please check your credentials.")
+                        return
+                    print_success("Connection test successful!")
+                except Exception as e:
+                    print_error(f"Connection test failed with error: {e}")
+                    console.print(f"Error details: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    console.print("Full traceback:")
+                    console.print(traceback.format_exc())
                     return
-                print_success("Connection test successful!")
         
         # Store credentials
         console.print("Storing credentials securely...")
@@ -334,7 +342,7 @@ def status():
     console.print("DATABRICKS Databricks Connection Status\n")
     
     try:
-        from .databricks.credentials import DatabricksCredentialManager
+        from mcp_visualization.databricks_integration.credentials import DatabricksCredentialManager
         
         cred_manager = DatabricksCredentialManager()
         creds = cred_manager.load_credentials()
@@ -378,7 +386,7 @@ def test():
     console.print("DATABASE Testing Databricks Integration\n")
     
     try:
-        from .databricks.manager import DatabricksManager
+        from mcp_visualization.databricks_integration.manager import DatabricksManager
         
         db_manager = DatabricksManager()
         
@@ -444,7 +452,7 @@ def remove():
     console.print("DELETE Removing Databricks Credentials\n")
     
     try:
-        from .databricks.credentials import DatabricksCredentialManager
+        from mcp_visualization.databricks_integration.credentials import DatabricksCredentialManager
         
         cred_manager = DatabricksCredentialManager()
         

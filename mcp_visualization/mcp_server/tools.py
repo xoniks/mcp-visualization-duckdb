@@ -439,6 +439,26 @@ class ToolRegistry:
                     "additionalProperties": False,
                 },
             ),
+            Tool(
+                name="create_interactive_dashboard",
+                description="Generate an interactive HTML dashboard with filtering controls and multiple visualizations",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "table_name": {
+                            "type": "string",
+                            "description": "Name of the table to use for dashboard data (optional, uses sample data if not provided)",
+                        },
+                        "dashboard_type": {
+                            "type": "string",
+                            "description": "Type of dashboard to create: 'standard' or 'enhanced'",
+                            "enum": ["standard", "enhanced"],
+                            "default": "enhanced"
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+            ),
             # Databricks-specific tools
             Tool(
                 name="list_catalogs",

@@ -2,7 +2,5 @@
 Databricks integration for MCP visualization
 """
 
-from .manager import DatabricksManager
-from .credentials import DatabricksCredentialManager
-
+# Lazy imports to avoid CLI import issues
 __all__ = ["DatabricksManager", "DatabricksCredentialManager"]

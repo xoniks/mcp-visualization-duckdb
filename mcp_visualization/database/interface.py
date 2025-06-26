@@ -63,7 +63,7 @@ class DatabaseFactory:
             return DatabaseManager(**kwargs)
         
         elif db_type.lower() == 'databricks':
-            from ..databricks.manager import DatabricksManager
+            from ..databricks_integration.manager import DatabricksManager
             return DatabricksManager(**kwargs)
         
         else:
@@ -75,7 +75,7 @@ class DatabaseFactory:
         
         # Check for Databricks credentials
         try:
-            from ..databricks.credentials import DatabricksCredentialManager
+            from ..databricks_integration.credentials import DatabricksCredentialManager
             cred_manager = DatabricksCredentialManager()
             if cred_manager.load_credentials():
                 return 'databricks'

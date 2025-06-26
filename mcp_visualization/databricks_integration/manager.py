@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
 import sys
 
-from ..database.interface import DatabaseInterface
+from mcp_visualization.database.interface import DatabaseInterface
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class DatabricksManager(DatabaseInterface):
     def _load_credentials(self):
         """Load credentials from secure storage"""
         try:
-            from .credentials import DatabricksCredentialManager
+            from mcp_visualization.databricks_integration.credentials import DatabricksCredentialManager
             cred_manager = DatabricksCredentialManager()
             creds = cred_manager.load_credentials()
             

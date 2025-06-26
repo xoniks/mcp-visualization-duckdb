@@ -17,7 +17,8 @@
       "Bash(git add:*)",
       "Bash(git rm:*)",
       "Bash(grep:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

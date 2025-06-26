@@ -191,13 +191,34 @@ You can easily switch between databases using Claude Desktop:
 
 ## 💾 Sample Data
 
+### 🎯 **Built-in Sample Data**
 The package automatically creates sample data including:
 
 - **Sales Data** - 365 days of sales across regions and products
-- **Customer Data** - 1000 customer records with demographics
+- **Customer Data** - 1000 customer records with demographics  
 - **Product Data** - 100 products with categories and pricing
 
-Perfect for testing and learning!
+### 🌟 **Additional Sample Databases**
+Want more data to explore? Check out these high-quality sample databases:
+
+**[TimeStored Sample DuckDB Databases](https://www.timestored.com/data/sample/duckdb)**
+
+Available datasets include:
+- **Financial Data** - Stock prices, trading data, market analysis
+- **NYC Taxi** - Real NYC taxi trip records with geospatial data
+- **TPC-H Benchmark** - Standard database performance testing data
+- **E-commerce** - Product catalogs, orders, customer behavior
+- **IoT Sensor Data** - Time-series sensor readings and telemetry
+
+Simply download any `.duckdb` file and load it:
+```bash
+# Download a sample database, then:
+"Load database from Downloads/nyc-taxi.duckdb"
+"What tables are available in this database?"
+"Create a heatmap of taxi pickups by hour and day"
+```
+
+Perfect for testing, learning, and demonstrating data visualization capabilities!
 
 ## 🏗️ Development Setup
 
