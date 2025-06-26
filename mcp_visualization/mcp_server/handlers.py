@@ -44,6 +44,7 @@ class RequestHandler:
                 "connect_database_help": self._handle_connect_database_help,
                 "supported_formats": self._handle_supported_formats,
                 "load_database": self._handle_load_database,
+                "start_visualization_wizard": self._handle_start_visualization_wizard,
                 # SUCCESS NEW: Database management tools
                 "change_database": self._handle_change_database,
                 "browse_databases": self._handle_browse_databases,
@@ -400,6 +401,10 @@ class RequestHandler:
     async def _handle_list_tables(self, arguments: dict) -> List[TextContent]:
         """Handle list_tables tool"""
         try:
+            # Check if database is connected
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please use 'load_database' tool to connect to a database first.")]
+            
             tables = self.db_manager.get_tables()
 
             if not tables:
@@ -429,6 +434,20 @@ class RequestHandler:
     async def _handle_analyze_table(self, arguments: dict) -> List[TextContent]:
         """Handle analyze_table tool"""
         try:
+            # Check if database is connected
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please use 'load_database' tool to connect to a database first.")]
+            
+            # Check if table_name was provided
+            if "table_name" not in arguments or not arguments["table_name"]:
+                # Show available tables if no table name provided
+                tables = self.db_manager.get_tables()
+                if not tables:
+                    return [TextContent(type="text", text="No tables found in the database. Please load a database first.")]
+                
+                table_list = "\n".join([f"- {table['name']}" for table in tables])
+                return [TextContent(type="text", text=f"Please specify a table name. Available tables:\n\n{table_list}\n\nUsage: Call this tool again with table_name parameter.")]
+            
             table_name = arguments["table_name"]
             table_info = self.db_manager.get_table_info(table_name)
 
@@ -470,6 +489,20 @@ class RequestHandler:
     ) -> List[TextContent]:
         """Handle suggest_visualizations tool"""
         try:
+            # Check if database is connected
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please use 'load_database' tool to connect to a database first.")]
+            
+            # Check if table_name was provided
+            if "table_name" not in arguments or not arguments["table_name"]:
+                # Show available tables if no table name provided
+                tables = self.db_manager.get_tables()
+                if not tables:
+                    return [TextContent(type="text", text="No tables found in the database. Please load a database first.")]
+                
+                table_list = "\n".join([f"- {table['name']}" for table in tables])
+                return [TextContent(type="text", text=f"Please specify a table name. Available tables:\n\n{table_list}\n\nUsage: Call this tool again with table_name parameter.")]
+            
             table_name = arguments["table_name"]
             columns = self.db_manager.get_columns(table_name)
 
@@ -517,6 +550,23 @@ class RequestHandler:
     async def _handle_create_visualization(self, arguments: dict) -> List[TextContent]:
         """Handle create_visualization tool"""
         try:
+            # Check if database is connected
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please use 'load_database' tool to connect to a database first.")]
+            
+            # Check if required parameters are provided
+            if "request" not in arguments or not arguments["request"]:
+                return [TextContent(type="text", text="Please provide a 'request' parameter describing what you want to visualize (e.g., 'Create a bar chart of sales by category').")]
+            
+            if "table_name" not in arguments or not arguments["table_name"]:
+                # Show available tables if no table name provided
+                tables = self.db_manager.get_tables()
+                if not tables:
+                    return [TextContent(type="text", text="No tables found in the database. Please load a database first.")]
+                
+                table_list = "\n".join([f"- {table['name']}" for table in tables])
+                return [TextContent(type="text", text=f"Please specify a table name. Available tables:\n\n{table_list}\n\nUsage: Call this tool again with both 'request' and 'table_name' parameters.")]
+            
             request = arguments["request"]
             table_name = arguments["table_name"]
 
@@ -1049,7 +1099,7 @@ Add the database environment variable:
 ```json
 {
   "mcpServers": {
-    "data-viz-server": {
+    "mcp-duckdb-viz": {
       "command": "python",
       "args": ["-m", "mcp_visualization.server"],
       "env": {
@@ -1168,10 +1218,29 @@ Use the `connect_database_help` tool for setup instructions."""
                 return [TextContent(type="text", text=f"Error: Unsupported file type {db_path.suffix}. Supported: .duckdb, .db, .csv")]
             
             try:
-                print(f"DEBUG: About to create DatabaseManager", file=sys.stderr)
-                # Create new database manager with the specified path
-                new_db_manager = DatabaseManager(db_path)
-                print(f"DEBUG: DatabaseManager created successfully", file=sys.stderr)
+                # Handle CSV files by importing them into DuckDB
+                if db_path.suffix.lower() == '.csv':
+                    print(f"DEBUG: Handling CSV file with DuckDB", file=sys.stderr)
+                    # Convert CSV to in-memory DuckDB for better Windows compatibility
+                    print(f"DEBUG: Creating in-memory DuckDB and importing CSV", file=sys.stderr)
+                    new_db_manager = DatabaseManager(":memory:")
+                    
+                    # Import CSV into DuckDB
+                    csv_table_name = db_path.stem.replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "")
+                    print(f"DEBUG: Importing CSV as table '{csv_table_name}'", file=sys.stderr)
+                    
+                    # Use DuckDB's CSV import functionality
+                    new_db_manager.connection.execute(f"""
+                        CREATE TABLE {csv_table_name} AS 
+                        SELECT * FROM read_csv_auto('{db_path}')
+                    """)
+                    
+                    print(f"DEBUG: CSV imported successfully into DuckDB", file=sys.stderr)
+                else:
+                    # Handle DuckDB files directly
+                    print(f"DEBUG: About to create DatabaseManager for DuckDB file", file=sys.stderr)
+                    new_db_manager = DatabaseManager(db_path)
+                    print(f"DEBUG: DatabaseManager created successfully", file=sys.stderr)
                 
                 # Replace the current database manager
                 print(f"DEBUG: Replacing current database manager", file=sys.stderr)
@@ -1290,3 +1359,80 @@ Use the `connect_database_help` tool for setup instructions."""
             traceback.print_exc(file=sys.stderr)
             logger.error(f"Error loading database: {e}")
             return [TextContent(type="text", text=f"Error loading database: {e}")]
+
+    async def _handle_start_visualization_wizard(self, arguments: dict) -> List[TextContent]:
+        """Handle start_visualization_wizard tool - interactive visualization creation"""
+        try:
+            # Check if database is connected
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please use 'load_database' tool to connect to a database first.")]
+            
+            # Get available tables
+            tables = self.db_manager.get_tables()
+            if not tables:
+                return [TextContent(type="text", text="No tables found in the database. Please load a database with tables first.")]
+            
+            # Generate interactive response
+            response = """# Visualization Wizard
+
+Welcome to the interactive visualization wizard! Let's create some great charts from your data.
+
+## Step 1: Choose a Table
+
+Available tables in your database:
+"""
+            
+            for i, table in enumerate(tables, 1):
+                # Get basic table info
+                table_info = self.db_manager.get_table_info(table["name"])
+                row_count = table_info.get('row_count', 0)
+                col_count = len(table_info.get('columns', []))
+                response += f"\n**{i}. {table['name']}** ({row_count} rows, {col_count} columns)\n"
+                
+                # Show column names
+                columns = table_info.get('columns', [])
+                if columns:
+                    col_names = [col['name'] for col in columns[:5]]  # First 5 columns
+                    if len(columns) > 5:
+                        col_names.append(f"... and {len(columns) - 5} more")
+                    response += f"   Columns: {', '.join(col_names)}\n"
+
+            response += """
+## Step 2: Choose Chart Type
+
+Available chart types:
+1. **Bar Chart** - Compare categories (e.g., sales by region)
+2. **Line Chart** - Show trends over time (e.g., sales over months)
+3. **Scatter Plot** - Explore relationships (e.g., price vs rating)
+4. **Pie Chart** - Show proportions (e.g., market share)
+5. **Histogram** - Show data distribution (e.g., age distribution)
+6. **Box Plot** - Show statistical summary (e.g., salary ranges)
+
+## Next Steps:
+
+**To create a visualization, use one of these approaches:**
+
+**Option A - Natural Language:**
+```
+create_visualization with request="Create a bar chart showing sales by category" and table_name="sales"
+```
+
+**Option B - Analyze First:**
+```
+analyze_table with table_name="sales"
+suggest_visualizations with table_name="sales"
+```
+
+**Option C - Quick Charts:**
+```
+create_sample_chart with chart_type="bar"
+```
+
+Choose your preferred table and chart type, then use the tools above to create your visualization!
+"""
+            
+            return [TextContent(type="text", text=response)]
+            
+        except Exception as e:
+            logger.error(f"Error in visualization wizard: {e}")
+            return [TextContent(type="text", text=f"Error in visualization wizard: {e}")]

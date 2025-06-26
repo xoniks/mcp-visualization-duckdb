@@ -113,7 +113,7 @@ security__blocked_sql_keywords:
   - "CREATE"
   - "ALTER"
   - "TRUNCATE"
-security__file_access__allowed_paths: ["./data/", "./samples/"]
+security__file_access__allowed_paths: ["./data/", "./samples/", "~/Downloads/", "~/Documents/", "~/Desktop/", "C:/Users/", "/home/", "/tmp/", "C:/temp/", "C:/test_duckdb/"]
 security__file_access__blocked_extensions: [".exe", ".bat", ".sh", ".py"]
 
 # Development Configuration

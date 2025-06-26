@@ -438,7 +438,7 @@ class DevelopmentConfig(BaseSettings):
 class ServerConfig(BaseSettings):
     """Server configuration"""
 
-    name: str = "data-viz-server"
+    name: str = "mcp-duckdb-viz"
     version: str = "1.0.0"
     description: str = "Natural Language Data Visualization MCP Server"
     transport: Literal["stdio", "websocket", "http"] = "stdio"

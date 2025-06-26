@@ -23,56 +23,9 @@ class ToolRegistry:
         self.tools = self._define_tools()
 
     def _define_tools(self) -> List[Tool]:
-        """Define all MCP tools"""
+        """Define all MCP tools - always provide full tool set, let handlers manage database requirements"""
         
-        # If no database manager, provide database-free tools
-        if not self.db_manager:
-            return [
-                Tool(
-                    name="server_status",
-                    description="Get the current status of the MCP Data Visualization Server",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                        "additionalProperties": False,
-                    },
-                ),
-                Tool(
-                    name="connect_database_help",
-                    description="Get help on how to connect databases to the visualization server",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                        "additionalProperties": False,
-                    },
-                ),
-                Tool(
-                    name="supported_formats",
-                    description="List supported database formats and connection methods",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {},
-                        "additionalProperties": False,
-                    },
-                ),
-                Tool(
-                    name="load_database",
-                    description="Load a database file directly (DuckDB, CSV, etc.) without config changes",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "database_path": {
-                                "type": "string",
-                                "description": "Full path to the database file (e.g., C:\\Users\\X260\\Downloads\\duckdb-demo.duckdb)",
-                            }
-                        },
-                        "required": ["database_path"],
-                        "additionalProperties": False,
-                    },
-                ),
-            ]
-        
-        # Full tools when database is available
+        # Always provide all tools - individual handlers will manage database requirements
         return [
             Tool(
                 name="list_tables",
@@ -440,6 +393,49 @@ class ToolRegistry:
                         },
                     },
                     "required": ["selection_number"],
+                    "additionalProperties": False,
+                },
+            ),
+            # Basic tools for database-free mode
+            Tool(
+                name="connect_database_help",
+                description="Get help on how to connect databases to the visualization server",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="supported_formats",
+                description="List supported database formats and connection methods",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="load_database",
+                description="Load a database file directly (DuckDB, CSV, etc.) without config changes",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "database_path": {
+                            "type": "string",
+                            "description": "Full path to the database file (e.g., C:\\Users\\X260\\Downloads\\duckdb-demo.duckdb)",
+                        }
+                    },
+                    "required": ["database_path"],
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="start_visualization_wizard",
+                description="Interactive wizard to create visualizations - shows available tables and chart types",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
                     "additionalProperties": False,
                 },
             ),

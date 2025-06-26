@@ -116,7 +116,7 @@ async def main():
     logger = logging.getLogger(__name__)
 
     # Log to stderr to avoid MCP interference
-    logger.info("Starting data-viz-server v1.0.0")
+    logger.info("Starting mcp-duckdb-viz v1.0.0")
 
     # Check dependencies (log only, don't print)
     if not check_dependencies():

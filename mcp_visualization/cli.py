@@ -55,7 +55,7 @@ def main():
 
 
 @main.command()
-@click.option('--server-name', default='data-viz-server', help='Name for the MCP server')
+@click.option('--server-name', default='mcp-duckdb-viz', help='Name for the MCP server')
 @click.option('--database-path', type=click.Path(), help='Path to DuckDB database file')
 @click.option('--python-path', type=click.Path(), help='Path to Python executable')
 @click.option('--force', is_flag=True, help='Overwrite existing configuration')
@@ -151,7 +151,7 @@ def configure(server_name: str, database_path: Optional[str], python_path: Optio
 
 
 @main.command()
-@click.option('--server-name', default='data-viz-server', help='Name of the MCP server to remove')
+@click.option('--server-name', default='mcp-duckdb-viz', help='Name of the MCP server to remove')
 def remove(server_name: str):
     """Remove MCP server from Claude Desktop configuration"""
     

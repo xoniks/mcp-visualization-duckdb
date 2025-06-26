@@ -20,11 +20,11 @@ def extract_sample_database():
         # Check for CSV files
         csv_files = list(package_data_dir.glob("*.csv"))
         if not csv_files:
-            print("⚠️  Sample CSV files not found in package")
+            print("WARNING: Sample CSV files not found in package")
             print(f"   Expected location: {package_data_dir}")
             return None
             
-        print(f"📊 Found {len(csv_files)} sample CSV files")
+        print(f"Found {len(csv_files)} sample CSV files")
         for csv_file in csv_files:
             print(f"   - {csv_file.name}")
             
@@ -39,7 +39,7 @@ def extract_sample_database():
         
         # Create DuckDB database from CSV files
         sample_db_dest = sample_dir / "sample.duckdb"
-        print(f"📁 Creating sample database...")
+        print(f"Creating sample database...")
         print(f"   Location: {sample_db_dest}")
         
         # Import duckdb
@@ -67,17 +67,17 @@ def extract_sample_database():
                     
                     # Get row count
                     row_count = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0]
-                    print(f"     ✅ {row_count} rows imported")
+                    print(f"     SUCCESS: {row_count} rows imported")
                     
                 except Exception as table_error:
-                    print(f"     ⚠️  Error importing {csv_file.name}: {table_error}")
+                    print(f"     WARNING: Error importing {csv_file.name}: {table_error}")
                     
             # Close connection
             conn.close()
-            print(f"   ✅ Database connection closed successfully")
+            print(f"   SUCCESS: Database connection closed successfully")
             
         except Exception as db_error:
-            print(f"   ⚠️  DuckDB connection error: {db_error}")
+            print(f"   WARNING: DuckDB connection error: {db_error}")
             print(f"   Falling back to CSV file distribution...")
             # If DuckDB fails, just copy the CSV files to both locations
             for csv_file in csv_files:
@@ -85,13 +85,13 @@ def extract_sample_database():
                 backup_csv = backup_dir / csv_file.name
                 shutil.copy2(csv_file, dest_csv)
                 shutil.copy2(csv_file, backup_csv)
-                print(f"   📄 Copied {csv_file.name} to {dest_csv}")
+                print(f"   Copied {csv_file.name} to {dest_csv}")
             return sample_dir  # Return directory instead of DB file
         
         # Verify the copy
         if sample_db_dest.exists():
             size_mb = sample_db_dest.stat().st_size / (1024 * 1024)
-            print(f"✅ Sample database extracted successfully!")
+            print(f"SUCCESS: Sample database extracted successfully!")
             print(f"   Size: {size_mb:.2f} MB")
             print(f"   Location: {sample_db_dest}")
             
@@ -154,15 +154,15 @@ Generated on: {sample_db_dest.stat().st_mtime}
             with open(readme_path, 'w', encoding='utf-8') as f:
                 f.write(readme_content)
             
-            print(f"📝 Created README: {readme_path}")
+            print(f"Created README: {readme_path}")
             return sample_db_dest
             
         else:
-            print("❌ Failed to copy sample database")
+            print("ERROR: Failed to copy sample database")
             return None
             
     except Exception as e:
-        print(f"❌ Error extracting sample database: {e}")
+        print(f"ERROR: Error extracting sample database: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -170,33 +170,44 @@ Generated on: {sample_db_dest.stat().st_mtime}
 def show_quick_start_guide(sample_db_path):
     """Show quick start instructions to the user"""
     print("\n" + "=" * 50)
-    print("🚀 QUICK START GUIDE")
+    print("QUICK START GUIDE")
     print("=" * 50)
     
-    print("\n1️⃣  SAMPLE DATABASE READY:")
-    print(f"   📍 Location: {sample_db_path}")
-    print("   📊 4 tables with sample business data")
-    print(f"   📁 Check your Downloads folder: Downloads/mcp-visualization-samples/")
+    print("\n1. SAMPLE DATABASE READY:")
+    print(f"   Location: {sample_db_path}")
+    print("   4 tables with sample business data")
+    print(f"   Check your Downloads folder: Downloads/mcp-visualization-samples/")
     
-    print("\n2️⃣  CONFIGURE CLAUDE DESKTOP:")
+    print("\n2. CONFIGURE CLAUDE DESKTOP:")
     print("   Run: mcp-viz configure")
-    print("   ✅ This will set up the MCP server automatically")
+    print("   This will set up the MCP server automatically")
     
-    print("\n3️⃣  RESTART CLAUDE DESKTOP:")
-    print("   🔄 Close and reopen Claude Desktop completely")
+    print("\n3. RESTART CLAUDE DESKTOP:")
+    print("   Close and reopen Claude Desktop completely")
     
-    print("\n4️⃣  TRY THESE COMMANDS:")
-    print('   💬 "What MCP servers are available?"')
-    print('   💬 "Load the sample database"')
-    print('   💬 "Show me available tables"')
-    print('   💬 "Create a sales chart by region"')
-    print('   💬 "Show monthly revenue trends"')
+    print("\n4. TRY THESE COMMANDS:")
+    print('   "What MCP servers are available?"')
+    print('   "Load the sample database"')
+    print('   "Show me available tables"')
+    print('   "Create a sales chart by region"')
+    print('   "Show monthly revenue trends"')
     
-    print("\n5️⃣  LOAD YOUR OWN DATA:")
-    print('   💬 "Browse databases in downloads"')
-    print('   💬 "Load database from [your_path]"')
+    print("\n5. LOAD YOUR OWN DATA:")
+    print('   "Browse databases in downloads"')
+    print('   "Load database from [your_path]"')
     
-    print("\n📚 Need help? Run: mcp-viz --help")
+    print("\nAVAILABLE CLI COMMANDS:")
+    print("   mcp-viz configure      # Configure Claude Desktop integration")
+    print("   mcp-viz status         # Show configuration status")
+    print("   mcp-viz setup-samples  # Extract sample database")
+    print("   mcp-viz find-samples   # Find sample database location")
+    print("   mcp-viz list-servers   # List all MCP servers")
+    print("   mcp-viz --help         # Show all available commands")
+    
+    print("\nTROUBLESHOOTING:")
+    print("   * Run 'mcp-viz status' to check configuration")
+    print("   * Restart Claude Desktop after configuration")
+    print("   * Check server logs in Claude Desktop if tools don't appear")
     print("=" * 50)
 
 def main():
@@ -209,18 +220,18 @@ def main():
             # Show quick start guide
             show_quick_start_guide(sample_db_path)
             
-            print(f"\n🎉 Installation complete!")
+            print(f"\nInstallation complete!")
             print(f"   Sample database: {sample_db_path}")
             print(f"   Next step: Run 'mcp-viz configure'")
             return 0
         else:
-            print("\n⚠️  Installation completed with warnings")
+            print("\nInstallation completed with warnings")
             print("   Sample database extraction failed")
             print("   You can still use the server with your own databases")
             return 1
             
     except Exception as e:
-        print(f"\n❌ Installation helper failed: {e}")
+        print(f"\nInstallation helper failed: {e}")
         return 1
 
 if __name__ == "__main__":
