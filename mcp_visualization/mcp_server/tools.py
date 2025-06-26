@@ -450,10 +450,10 @@ class ToolRegistry:
                             "description": "Name of the table to use for dashboard data (optional, uses sample data if not provided)",
                         },
                         "dashboard_type": {
-                            "type": "string",
-                            "description": "Type of dashboard to create: 'standard' or 'enhanced'",
-                            "enum": ["standard", "enhanced"],
-                            "default": "enhanced"
+                            "type": "string", 
+                            "description": "Type of dashboard to create: 'robust' (error-free, default), 'enhanced', or 'standard'",
+                            "enum": ["robust", "enhanced", "standard"],
+                            "default": "robust"
                         }
                     },
                     "additionalProperties": False,

@@ -249,7 +249,7 @@ def status():
 
 @main.group()
 def databricks():
-    """Databricks integration commands"""
+    """Databricks integration commands (run once for setup, then use Claude Desktop daily)"""
     pass
 
 
@@ -261,7 +261,7 @@ def databricks():
 @click.option('--test-connection/--no-test', default=True, help='Test connection before saving')
 @click.option('--use-keyring/--no-keyring', default=True, help='Use system keyring for secure storage')
 def configure(server_hostname, http_path, token, interactive, test_connection, use_keyring):
-    """Configure Databricks connection credentials"""
+    """Configure Databricks connection credentials (run once, then credentials are auto-loaded)"""
     
     print_banner()
     console.print("DATABRICKS Databricks Configuration\n")

@@ -226,11 +226,16 @@ def print_post_install_instructions(sample_db_path):
     print("\n2. Restart Claude Desktop completely")
     print("\n3. Start chatting with Claude about your data!")
     
-    print("\nQUICK START COMMANDS:")
-    print("   mcp-viz configure              # Setup DuckDB")
+    print("\nQUICK START COMMANDS (Run Once):")
+    print("   mcp-viz configure              # Setup DuckDB") 
     print("   mcp-viz databricks configure   # Setup Databricks")
     print("   mcp-viz status                 # Check configuration")
     print("   mcp-viz databricks test        # Test Databricks connection")
+    
+    print("\nONGOING USAGE (Daily):")
+    print("   - Just open Claude Desktop and start chatting!")
+    print("   - No need to reconfigure unless credentials change")
+    print("   - Your credentials are stored securely and auto-loaded")
     
     print("\nSAMPLE DATABASES:")
     print("   Built-in sample data: Already included in your installation")

@@ -1599,8 +1599,8 @@ Choose your preferred table and chart type, then use the tools above to create y
             import os
             
             # Determine dashboard type
-            dashboard_type = arguments.get("dashboard_type", "enhanced")
-            template_filename = "enhanced_dashboard.html" if dashboard_type == "enhanced" else "interactive_dashboard.html"
+            dashboard_type = arguments.get("dashboard_type", "robust")
+            template_filename = "robust_dashboard.html" if dashboard_type == "robust" else "enhanced_dashboard.html"
             
             # Get the dashboard template path
             current_dir = Path(__file__).parent.parent

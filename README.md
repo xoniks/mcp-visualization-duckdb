@@ -68,6 +68,54 @@ mcp-viz configure
 - ✅ **Creates backups** of existing config
 - ✅ **Validates setup** to ensure it works
 
+### 🚀 **After Installation**
+
+Once installed, you'll see detailed instructions with:
+- Next steps for your chosen database type
+- Quick start commands
+- Sample database links
+- Example queries to try
+
+Run `mcp-viz-setup` anytime to see the post-installation guide again!
+
+## 🔄 **Ongoing Usage (After Setup)**
+
+### **✅ One-Time Setup Only**
+```bash
+# Run these commands ONCE:
+mcp-viz databricks configure  # First time Databricks setup
+mcp-viz configure             # Configure Claude Desktop  
+# Restart Claude Desktop
+```
+
+### **📋 Daily Usage - No Reconfiguration Needed**
+```bash
+# Just open Claude Desktop and start chatting:
+"What Databricks catalogs are available?"
+"List tables in the sales catalog" 
+"Create a chart of revenue by region"
+```
+
+### **🔍 Check Status Anytime**
+```bash
+mcp-viz databricks status    # Shows if credentials exist
+mcp-viz databricks test      # Test connection and browse catalogs
+mcp-viz status              # Shows MCP server configuration
+```
+
+### **🔄 When You Need to Reconfigure**
+- ❌ **Token expires** (personal access tokens can have expiration dates)
+- ❌ **Change workspaces** (different Databricks instance)  
+- ❌ **Change SQL warehouses** (different HTTP path)
+- ❌ **Credential issues** (run `mcp-viz databricks remove` then reconfigure)
+
+### **💾 Secure Credential Storage**
+- 🔒 **Encrypted on disk** or in system keyring
+- 🔄 **Automatically loaded** when Claude Desktop starts
+- ⚡ **No repeated authentication** needed
+
+> **📝 Note**: After initial setup, you should be able to use Claude Desktop normally without any additional configuration steps!
+
 ## 🎮 Usage with Claude Desktop
 
 After installation, simply chat with Claude using natural language:
@@ -226,7 +274,7 @@ For developers who want to contribute:
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/mcp-visualization-duckdb.git
+git clone https://github.com/your-github-username/mcp-visualization-duckdb.git
 cd mcp-visualization-duckdb
 
 # Install in development mode
@@ -241,10 +289,44 @@ python test_package.py
 
 See [Development Guide](docs/DEVELOPMENT.md) for detailed instructions.
 
+## ❓ Frequently Asked Questions
+
+### **Q: Do I need to run `mcp-viz databricks configure` every time?**
+**A: No!** You only run it once during initial setup. After that:
+- ✅ Credentials are stored securely and auto-loaded
+- ✅ Just open Claude Desktop and start chatting
+- ✅ No repeated authentication needed
+
+### **Q: How do I know if my Databricks is still connected?**
+**A:** Check anytime with:
+```bash
+mcp-viz databricks status    # Shows connection status
+mcp-viz databricks test      # Tests connection and shows catalogs
+```
+
+### **Q: When do I need to reconfigure?**
+**A:** Only when:
+- Your access token expires
+- You change Databricks workspaces
+- You switch to a different SQL warehouse
+- Credentials get corrupted (rare)
+
+### **Q: Are my credentials safe?**
+**A:** Yes! Credentials are:
+- 🔒 Encrypted on disk or stored in system keyring
+- 🚫 Never stored in plain text or command history
+- ⚡ Automatically loaded when needed
+
+### **Q: Can I use both DuckDB and Databricks?**
+**A:** Yes! The server auto-detects which database type to use:
+- Configure Databricks: `mcp-viz databricks configure`
+- Configure DuckDB: `mcp-viz configure`
+- Server automatically uses the appropriate one
+
 ## 📦 Package Information
 
 - **PyPI**: https://pypi.org/project/mcp-visualization-duckdb/
-- **Repository**: https://github.com/your-username/mcp-visualization-duckdb
+- **Repository**: https://github.com/your-github-username/mcp-visualization-duckdb
 - **License**: MIT
 
 ## 🤝 Contributing
