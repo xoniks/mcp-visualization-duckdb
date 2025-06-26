@@ -38,9 +38,9 @@ class DatabaseManager(DatabaseInterface):
         # Ensure db_path is a Path object, using the default if not provided
         self.db_path = db_path if db_path else self.config.connection.path
         logger.info(f"Attempting to connect to database at: {self.db_path}")
-        self._connect()
+        self.connect()
 
-    def _connect(self):
+    def connect(self) -> bool:
         """Establish database connection"""
         try:
             print(f"DEBUG: Starting connection process", file=sys.stderr)
@@ -149,20 +149,30 @@ class DatabaseManager(DatabaseInterface):
             self.connection = connect_with_timeout()
             print(f"DuckDB connection established successfully", file=sys.stderr)
             logger.info(f"Successfully connected to DuckDB at: {self.db_path}")
+            return True
         except Exception as e:
             logger.error(f"Failed to connect to database: {e}")
-            raise
+            self.connection = None
+            return False
 
     def get_connection(self) -> duckdb.DuckDBPyConnection:
         """Get database connection"""
         if self.connection is None:
-            self._connect()
+            self.connect()
         return self.connection
 
-    def execute_query(
+    def execute_query(self, query: str, limit: int = 1000) -> pd.DataFrame:
+        """Execute SQL query and return results as DataFrame (interface method)"""
+        # Add LIMIT if not present and limit is specified
+        if limit and "LIMIT" not in query.upper():
+            query = f"{query.rstrip(';')} LIMIT {limit}"
+        
+        return self.execute_query_with_params(query)
+
+    def execute_query_with_params(
         self, sql: str, params: Optional[Dict[str, Any]] = None
     ) -> pd.DataFrame:
-        """Execute SQL query and return DataFrame"""
+        """Execute SQL query and return DataFrame (with parameters support)"""
         try:
             # Validate SQL query for security
             if not validate_sql_query(sql, self.security_config):
@@ -534,6 +544,23 @@ class DatabaseManager(DatabaseInterface):
             )
 
         return suggestions
+
+    def get_sample_data(self, table_name: str, limit: int = 10) -> pd.DataFrame:
+        """Get sample data from a table"""
+        try:
+            query = f"SELECT * FROM {table_name} LIMIT {limit}"
+            return self.execute_query_with_params(query)
+        except Exception as e:
+            logger.error(f"Failed to get sample data from {table_name}: {e}")
+            return pd.DataFrame()
+
+    def get_connection_info(self) -> Dict[str, Any]:
+        """Get current connection information"""
+        return {
+            "type": "duckdb",
+            "db_path": str(self.db_path),
+            "connected": self.connection is not None
+        }
 
     def close(self):
         """Close database connection"""
