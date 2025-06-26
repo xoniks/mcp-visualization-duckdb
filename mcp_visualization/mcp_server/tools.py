@@ -439,6 +439,59 @@ class ToolRegistry:
                     "additionalProperties": False,
                 },
             ),
+            # Databricks-specific tools
+            Tool(
+                name="list_catalogs",
+                description="List available Databricks catalogs",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="list_schemas",
+                description="List available schemas in a Databricks catalog",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "catalog": {
+                            "type": "string",
+                            "description": "Catalog name (optional, uses current catalog if not specified)",
+                        }
+                    },
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="switch_catalog_schema",
+                description="Switch to a different Databricks catalog and schema",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "catalog": {
+                            "type": "string",
+                            "description": "Catalog name to switch to",
+                        },
+                        "schema": {
+                            "type": "string",
+                            "description": "Schema name to switch to",
+                            "default": "default",
+                        },
+                    },
+                    "required": ["catalog"],
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="get_connection_info",
+                description="Get current database connection information",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+            ),
         ]
 
     async def handle_browse_and_select_database(

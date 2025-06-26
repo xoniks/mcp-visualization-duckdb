@@ -53,6 +53,11 @@ class RequestHandler:
                 "select_database_by_number": self._handle_select_database_by_number,
                 "browse_downloads_databases": self._handle_browse_downloads_databases,
                 "select_downloads_database_by_number": self._handle_select_downloads_database_by_number,
+                # Databricks-specific tools
+                "list_catalogs": self._handle_list_catalogs,
+                "list_schemas": self._handle_list_schemas,
+                "switch_catalog_schema": self._handle_switch_catalog_schema,
+                "get_connection_info": self._handle_get_connection_info,
             }
 
             handler = handlers.get(name)
@@ -1436,3 +1441,152 @@ Choose your preferred table and chart type, then use the tools above to create y
         except Exception as e:
             logger.error(f"Error in visualization wizard: {e}")
             return [TextContent(type="text", text=f"Error in visualization wizard: {e}")]
+
+    # Databricks-specific handlers
+    async def _handle_list_catalogs(self, arguments: dict) -> List[TextContent]:
+        """Handle list_catalogs tool"""
+        try:
+            # Check if database is connected and is Databricks
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please configure Databricks connection first.")]
+            
+            connection_info = self.db_manager.get_connection_info()
+            if connection_info.get("type") != "databricks":
+                return [TextContent(type="text", text="This tool is only available for Databricks connections.")]
+            
+            catalogs = self.db_manager.get_catalogs()
+            
+            if not catalogs:
+                return [TextContent(type="text", text="No catalogs found in Databricks workspace.")]
+            
+            response = "# Available Databricks Catalogs\n\n"
+            current_catalog = connection_info.get("current_catalog", "unknown")
+            response += f"**Current catalog:** {current_catalog}\n\n"
+            
+            for i, catalog in enumerate(catalogs, 1):
+                marker = " ⭐ (current)" if catalog["name"] == current_catalog else ""
+                response += f"{i}. **{catalog['name']}**{marker}\n"
+            
+            response += "\n**To switch catalogs:** Use the `switch_catalog_schema` tool\n"
+            response += "**Example:** switch_catalog_schema with catalog=\"your_catalog_name\""
+            
+            return [TextContent(type="text", text=response)]
+            
+        except Exception as e:
+            logger.error(f"Error listing catalogs: {e}")
+            return [TextContent(type="text", text=f"Error listing catalogs: {e}")]
+
+    async def _handle_list_schemas(self, arguments: dict) -> List[TextContent]:
+        """Handle list_schemas tool"""
+        try:
+            # Check if database is connected and is Databricks
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please configure Databricks connection first.")]
+            
+            connection_info = self.db_manager.get_connection_info()
+            if connection_info.get("type") != "databricks":
+                return [TextContent(type="text", text="This tool is only available for Databricks connections.")]
+            
+            catalog = arguments.get("catalog")
+            if catalog:
+                schemas = self.db_manager.get_schemas(catalog)
+                catalog_name = catalog
+            else:
+                schemas = self.db_manager.get_schemas()
+                catalog_name = connection_info.get("current_catalog", "current")
+            
+            if not schemas:
+                return [TextContent(type="text", text=f"No schemas found in catalog '{catalog_name}'.")]
+            
+            response = f"# Schemas in Catalog '{catalog_name}'\n\n"
+            current_schema = connection_info.get("current_schema", "unknown")
+            
+            for i, schema in enumerate(schemas, 1):
+                marker = " ⭐ (current)" if schema["name"] == current_schema and schema["catalog"] == connection_info.get("current_catalog") else ""
+                response += f"{i}. **{schema['name']}**{marker}\n"
+            
+            response += "\n**To switch schemas:** Use the `switch_catalog_schema` tool\n"
+            response += f"**Example:** switch_catalog_schema with catalog=\"{catalog_name}\" and schema=\"your_schema_name\""
+            
+            return [TextContent(type="text", text=response)]
+            
+        except Exception as e:
+            logger.error(f"Error listing schemas: {e}")
+            return [TextContent(type="text", text=f"Error listing schemas: {e}")]
+
+    async def _handle_switch_catalog_schema(self, arguments: dict) -> List[TextContent]:
+        """Handle switch_catalog_schema tool"""
+        try:
+            # Check if database is connected and is Databricks
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected. Please configure Databricks connection first.")]
+            
+            connection_info = self.db_manager.get_connection_info()
+            if connection_info.get("type") != "databricks":
+                return [TextContent(type="text", text="This tool is only available for Databricks connections.")]
+            
+            catalog = arguments.get("catalog")
+            schema = arguments.get("schema", "default")
+            
+            if not catalog:
+                return [TextContent(type="text", text="Error: catalog parameter is required.")]
+            
+            # Switch catalog and schema
+            if self.db_manager.switch_catalog_schema(catalog, schema):
+                response = f"✅ Successfully switched to catalog '{catalog}', schema '{schema}'\n\n"
+                
+                # Show available tables in the new location
+                tables = self.db_manager.get_tables()
+                if tables:
+                    response += f"**Available tables in {catalog}.{schema}:**\n"
+                    for i, table in enumerate(tables[:10], 1):  # Show first 10
+                        response += f"{i}. {table['name']}\n"
+                    if len(tables) > 10:
+                        response += f"... and {len(tables) - 10} more tables\n"
+                else:
+                    response += "No tables found in this schema.\n"
+                
+                return [TextContent(type="text", text=response)]
+            else:
+                return [TextContent(type="text", text=f"Failed to switch to catalog '{catalog}', schema '{schema}'. Please check if they exist and you have access.")]
+            
+        except Exception as e:
+            logger.error(f"Error switching catalog/schema: {e}")
+            return [TextContent(type="text", text=f"Error switching catalog/schema: {e}")]
+
+    async def _handle_get_connection_info(self, arguments: dict) -> List[TextContent]:
+        """Handle get_connection_info tool"""
+        try:
+            if not self.db_manager:
+                return [TextContent(type="text", text="No database connected.")]
+            
+            connection_info = self.db_manager.get_connection_info()
+            
+            response = "# Database Connection Information\n\n"
+            
+            db_type = connection_info.get("type", "unknown")
+            response += f"**Database Type:** {db_type.title()}\n"
+            
+            if db_type == "databricks":
+                response += f"**Server Hostname:** {connection_info.get('server_hostname', 'N/A')}\n"
+                response += f"**HTTP Path:** {connection_info.get('http_path', 'N/A')}\n"
+                response += f"**Current Catalog:** {connection_info.get('current_catalog', 'N/A')}\n"
+                response += f"**Current Schema:** {connection_info.get('current_schema', 'N/A')}\n"
+                response += f"**Connected:** {'Yes' if connection_info.get('connected') else 'No'}\n"
+                
+                if connection_info.get('connected'):
+                    response += "\n**Available commands:**\n"
+                    response += "- `list_catalogs` - List all available catalogs\n"
+                    response += "- `list_schemas` - List schemas in current or specified catalog\n"
+                    response += "- `switch_catalog_schema` - Switch to different catalog/schema\n"
+                    response += "- `list_tables` - List tables in current schema\n"
+            
+            elif db_type == "duckdb":
+                response += f"**Database Path:** {connection_info.get('db_path', 'N/A')}\n"
+                response += f"**Connected:** {'Yes' if connection_info.get('connected') else 'No'}\n"
+            
+            return [TextContent(type="text", text=response)]
+            
+        except Exception as e:
+            logger.error(f"Error getting connection info: {e}")
+            return [TextContent(type="text", text=f"Error getting connection info: {e}")]

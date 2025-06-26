@@ -19,6 +19,7 @@ from mcp.types import (
 # Import the config_manager and the specific config types for type hinting
 from ..config.settings import config_manager, ServerConfig, DevelopmentConfig, Settings
 from ..database.manager import DatabaseManager
+from ..database.interface import DatabaseFactory
 from ..llm.simple_fallback import SimpleFallbackClient
 from ..visualization.chart_generator import ChartGenerator
 from ..visualization.chart_types import ChartType, InsightType, chart_registry
@@ -44,7 +45,7 @@ class DataVisualizationMCPServer:
         self.server = Server(self.server_config.name)  # Use the loaded config
 
         # Initialize components (these will now implicitly use config_manager internally)
-        self.db_manager: Optional[DatabaseManager] = None
+        self.db_manager = None  # Will be DatabaseInterface type
         self.llm_client: Optional[SimpleFallbackClient] = None
         self.chart_generator: Optional[ChartGenerator] = None
         self.tool_registry: Optional[ToolRegistry] = None
@@ -68,23 +69,41 @@ class DataVisualizationMCPServer:
         try:
             print("Starting server initialization...", file=sys.stderr)
             
-            # Check if database is configured
-            import os
-            if os.getenv("DUCKDB_DATABASE_PATH"):
-                print("Initializing database manager...", file=sys.stderr)
-                try:
-                    self.db_manager = DatabaseManager()
-                    logger.info("Database manager initialized")
-                    print("Database manager ready", file=sys.stderr)
-                except Exception as e:
-                    print(f"Database manager failed: {e}", file=sys.stderr)
-                    print("Running without database...", file=sys.stderr)
-                    self.db_manager = None
-                    print("No database mode active", file=sys.stderr)
-            else:
-                print("No database configured - running in database-free mode", file=sys.stderr)
+            # Initialize database manager based on available configuration
+            print("Initializing database manager...", file=sys.stderr)
+            try:
+                # Detect database type and create appropriate manager
+                db_type = DatabaseFactory.detect_database_type()
+                print(f"Detected database type: {db_type}", file=sys.stderr)
+                
+                if db_type == 'databricks':
+                    print("Setting up Databricks connection...", file=sys.stderr)
+                    self.db_manager = DatabaseFactory.create_manager('databricks')
+                    if self.db_manager.connect():
+                        logger.info("Databricks manager initialized successfully")
+                        print("Databricks manager ready", file=sys.stderr)
+                    else:
+                        print("Databricks connection failed, falling back to database-free mode", file=sys.stderr)
+                        self.db_manager = None
+                
+                elif db_type == 'duckdb':
+                    # Check if DuckDB database is configured
+                    import os
+                    if os.getenv("DUCKDB_DATABASE_PATH"):
+                        print("Setting up DuckDB connection...", file=sys.stderr)
+                        self.db_manager = DatabaseFactory.create_manager('duckdb')
+                        logger.info("DuckDB manager initialized")
+                        print("DuckDB manager ready", file=sys.stderr)
+                    else:
+                        print("No DuckDB database configured - running in database-free mode", file=sys.stderr)
+                        self.db_manager = None
+                        print("Database-free mode active", file=sys.stderr)
+                
+            except Exception as e:
+                print(f"Database initialization failed: {e}", file=sys.stderr)
+                print("Running without database...", file=sys.stderr)
                 self.db_manager = None
-                print("Database-free mode active", file=sys.stderr)
+                print("No database mode active", file=sys.stderr)
 
             # Initialize simple fallback client (no external LLM needed)
             print("Initializing LLM client...", file=sys.stderr)

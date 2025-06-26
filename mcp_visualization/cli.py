@@ -247,6 +247,228 @@ def status():
         sys.exit(1)
 
 
+@main.group()
+def databricks():
+    """Databricks integration commands"""
+    pass
+
+
+@databricks.command()
+@click.option('--server-hostname', help='Databricks workspace hostname (e.g., your-workspace.cloud.databricks.com)')
+@click.option('--http-path', help='SQL warehouse HTTP path (e.g., /sql/1.0/warehouses/abc123)')
+@click.option('--token', help='Access token (not recommended for security)')
+@click.option('--interactive/--no-interactive', default=True, help='Interactive credential setup')
+@click.option('--test-connection/--no-test', default=True, help='Test connection before saving')
+@click.option('--use-keyring/--no-keyring', default=True, help='Use system keyring for secure storage')
+def configure(server_hostname, http_path, token, interactive, test_connection, use_keyring):
+    """Configure Databricks connection credentials"""
+    
+    print_banner()
+    console.print("DATABRICKS Databricks Configuration\n")
+    
+    try:
+        from .databricks.credentials import DatabricksCredentialManager
+        
+        cred_manager = DatabricksCredentialManager()
+        
+        # Check for existing credentials
+        existing_creds = cred_manager.load_credentials()
+        if existing_creds and not interactive:
+            console.print("SUCCESS Existing Databricks credentials found")
+            console.print(f"Server: {existing_creds['server_hostname']}")
+            console.print(f"HTTP Path: {existing_creds['http_path']}")
+            console.print(f"Token: {existing_creds['token'][:8]}..." + existing_creds['token'][-4:])
+            return
+        
+        # Gather credentials
+        if interactive or not all([server_hostname, http_path, token]):
+            creds = cred_manager.prompt_for_credentials(interactive=True)
+            if not creds:
+                console.print("Configuration cancelled.")
+                return
+        else:
+            creds = {
+                "server_hostname": server_hostname,
+                "http_path": http_path,
+                "token": token
+            }
+            
+            # Test connection if requested
+            if test_connection:
+                console.print("Testing connection...")
+                if not cred_manager.test_connection(server_hostname, http_path, token):
+                    print_error("Connection test failed. Please check your credentials.")
+                    return
+                print_success("Connection test successful!")
+        
+        # Store credentials
+        console.print("Storing credentials securely...")
+        if cred_manager.store_credentials(
+            creds["server_hostname"], 
+            creds["http_path"], 
+            creds["token"],
+            use_keyring=use_keyring
+        ):
+            print_success("Databricks credentials configured successfully!")
+            
+            # Show next steps
+            console.print("\nNext steps:")
+            console.print("1. Configure MCP server: mcp-viz configure --database-type databricks")
+            console.print("2. Restart Claude Desktop")
+            console.print("3. Try: 'What Databricks catalogs are available?'")
+        else:
+            print_error("Failed to store credentials")
+            
+    except ImportError:
+        print_error("Databricks dependencies not installed. Run: pip install databricks-sql-connector")
+        sys.exit(1)
+    except Exception as e:
+        print_error(f"Databricks configuration failed: {e}")
+        sys.exit(1)
+
+
+@databricks.command()
+def status():
+    """Show Databricks connection status"""
+    
+    console.print("DATABRICKS Databricks Connection Status\n")
+    
+    try:
+        from .databricks.credentials import DatabricksCredentialManager
+        
+        cred_manager = DatabricksCredentialManager()
+        creds = cred_manager.load_credentials()
+        
+        if not creds:
+            print_warning("No Databricks credentials configured")
+            console.print("Run: mcp-viz databricks configure")
+            return
+        
+        # Show connection info (masked)
+        table = Table()
+        table.add_column("Setting", style="cyan")
+        table.add_column("Value", style="white")
+        
+        table.add_row("Server Hostname", creds["server_hostname"])
+        table.add_row("HTTP Path", creds["http_path"])
+        
+        masked_token = creds["token"][:8] + "..." + creds["token"][-4:] if len(creds["token"]) > 12 else "***"
+        table.add_row("Access Token", masked_token)
+        
+        console.print(table)
+        console.print()
+        
+        # Test connection
+        console.print("CONNECTION Testing connection...")
+        if cred_manager.test_connection(creds["server_hostname"], creds["http_path"], creds["token"]):
+            print_success("Connection successful!")
+        else:
+            print_error("Connection failed!")
+            
+    except ImportError:
+        print_error("Databricks dependencies not installed. Run: pip install databricks-sql-connector")
+    except Exception as e:
+        print_error(f"Status check failed: {e}")
+
+
+@databricks.command()
+def test():
+    """Test Databricks connection and show available catalogs"""
+    
+    console.print("DATABASE Testing Databricks Integration\n")
+    
+    try:
+        from .databricks.manager import DatabricksManager
+        
+        db_manager = DatabricksManager()
+        
+        if not db_manager.connect():
+            print_error("Failed to connect to Databricks")
+            console.print("Run: mcp-viz databricks configure")
+            return
+        
+        print_success("Connected to Databricks!")
+        
+        # Show connection info
+        info = db_manager.get_connection_info()
+        console.print(f"Current catalog: {info['current_catalog']}")
+        console.print(f"Current schema: {info['current_schema']}")
+        console.print()
+        
+        # List catalogs
+        console.print("Available catalogs:")
+        catalogs = db_manager.get_catalogs()
+        if catalogs:
+            for i, catalog in enumerate(catalogs, 1):
+                console.print(f"  {i}. {catalog['name']}")
+        else:
+            console.print("  No catalogs found")
+        console.print()
+        
+        # List schemas in current catalog
+        console.print(f"Schemas in '{info['current_catalog']}':")
+        schemas = db_manager.get_schemas()
+        if schemas:
+            for i, schema in enumerate(schemas[:5], 1):  # Show first 5
+                console.print(f"  {i}. {schema['name']}")
+            if len(schemas) > 5:
+                console.print(f"  ... and {len(schemas) - 5} more")
+        else:
+            console.print("  No schemas found")
+        console.print()
+        
+        # List tables in current schema
+        console.print(f"Tables in '{info['current_catalog']}.{info['current_schema']}':")
+        tables = db_manager.get_tables()
+        if tables:
+            for i, table in enumerate(tables[:5], 1):  # Show first 5
+                console.print(f"  {i}. {table['name']}")
+            if len(tables) > 5:
+                console.print(f"  ... and {len(tables) - 5} more")
+        else:
+            console.print("  No tables found")
+        
+        db_manager.close()
+        print_success("Databricks integration test completed!")
+        
+    except ImportError:
+        print_error("Databricks dependencies not installed. Run: pip install databricks-sql-connector")
+    except Exception as e:
+        print_error(f"Test failed: {e}")
+
+
+@databricks.command()
+def remove():
+    """Remove stored Databricks credentials"""
+    
+    console.print("DELETE Removing Databricks Credentials\n")
+    
+    try:
+        from .databricks.credentials import DatabricksCredentialManager
+        
+        cred_manager = DatabricksCredentialManager()
+        
+        # Check if credentials exist
+        if not cred_manager.load_credentials():
+            print_warning("No Databricks credentials found")
+            return
+        
+        # Confirm removal
+        if not Confirm.ask("Remove stored Databricks credentials?"):
+            console.print("Removal cancelled.")
+            return
+        
+        if cred_manager.delete_credentials():
+            print_success("Databricks credentials removed successfully!")
+        else:
+            print_error("Failed to remove credentials")
+            
+    except Exception as e:
+        print_error(f"Credential removal failed: {e}")
+
+
+
+
 @main.command()
 def test():
     """Test server functionality"""

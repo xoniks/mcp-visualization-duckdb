@@ -22,11 +22,12 @@ from ..config.settings import (
 
 from ..utils.validators import validate_sql_query
 from .queries import QueryBuilder
+from .interface import DatabaseInterface
 
 logger = logging.getLogger(__name__)
 
 
-class DatabaseManager:
+class DatabaseManager(DatabaseInterface):
     def __init__(self, db_path: Optional[Path] = None):
         # SUCCESS FIXED: Get config properly using the convenience function
         server_config = get_server_config()
