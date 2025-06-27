@@ -84,7 +84,7 @@ class RequestHandler:
                 self.db_manager.close()
 
             # Create new database manager with new path
-            from database.manager import DatabaseManager
+            from mcp_visualization.database.manager import DatabaseManager
             from pathlib import Path
 
             new_path = (

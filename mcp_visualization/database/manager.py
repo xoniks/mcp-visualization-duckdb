@@ -46,64 +46,102 @@ class DatabaseManager(DatabaseInterface):
             print(f"DEBUG: Starting connection process", file=sys.stderr)
             print(f"DEBUG: Initial db_path = {self.db_path}", file=sys.stderr)
             print(f"DEBUG: db_path type = {type(self.db_path)}", file=sys.stderr)
-            
+
             # Check if database path exists or if we should use in-memory database
             if self.db_path == ":memory:":
                 print(f"DEBUG: Using in-memory database mode", file=sys.stderr)
                 logger.info(f"Using in-memory database")
             else:
                 db_path_obj = Path(self.db_path)
-                print(f"DEBUG: Checking file existence for: {db_path_obj}", file=sys.stderr)
+                print(
+                    f"DEBUG: Checking file existence for: {db_path_obj}",
+                    file=sys.stderr,
+                )
                 print(f"DEBUG: File exists: {db_path_obj.exists()}", file=sys.stderr)
-                
+
                 if db_path_obj.exists():
                     print(f"DEBUG: File found, checking properties", file=sys.stderr)
                     stat_info = db_path_obj.stat()
-                    print(f"DEBUG: File size: {stat_info.st_size} bytes", file=sys.stderr)
-                    print(f"DEBUG: File is readable: {db_path_obj.is_file()}", file=sys.stderr)
+                    print(
+                        f"DEBUG: File size: {stat_info.st_size} bytes", file=sys.stderr
+                    )
+                    print(
+                        f"DEBUG: File is readable: {db_path_obj.is_file()}",
+                        file=sys.stderr,
+                    )
                     logger.info(f"Connecting to DuckDB using path: '{self.db_path}'")
                 else:
-                    print(f"DEBUG: File not found, switching to in-memory", file=sys.stderr)
-                    logger.warning(f"Database file not found at {self.db_path}, using in-memory database")
+                    print(
+                        f"DEBUG: File not found, switching to in-memory",
+                        file=sys.stderr,
+                    )
+                    logger.warning(
+                        f"Database file not found at {self.db_path}, using in-memory database"
+                    )
                     self.db_path = ":memory:"
-            
-            print(f"DEBUG: Final db_path for connection: {self.db_path}", file=sys.stderr)
+
+            print(
+                f"DEBUG: Final db_path for connection: {self.db_path}", file=sys.stderr
+            )
             print(f"Attempting DuckDB connection to: {self.db_path}", file=sys.stderr)
-            
+
             # Use a timeout mechanism for the connection
             import threading
             import queue
             import time
-            
+
             def connect_with_timeout():
                 print(f"DEBUG: Starting threaded connection attempt", file=sys.stderr)
                 result_queue = queue.Queue()
-                
+
                 def do_connect():
                     try:
                         print(f"DEBUG: Inside connection thread", file=sys.stderr)
-                        
+
                         # Prepare connection parameters
                         db_str = str(self.db_path)
-                        read_only = self.config.connection.read_only if self.db_path != ":memory:" else False
-                        
+                        read_only = (
+                            self.config.connection.read_only
+                            if self.db_path != ":memory:"
+                            else False
+                        )
+
                         print(f"DEBUG: Connection parameters:", file=sys.stderr)
                         print(f"DEBUG:   database: {db_str}", file=sys.stderr)
                         print(f"DEBUG:   read_only: {read_only}", file=sys.stderr)
-                        print(f"DEBUG:   memory_limit: {self.config.settings.memory_limit}", file=sys.stderr)
-                        print(f"DEBUG:   threads: {self.config.settings.threads}", file=sys.stderr)
-                        print(f"DEBUG:   enable_extensions: {self.config.settings.enable_extensions}", file=sys.stderr)
-                        
+                        print(
+                            f"DEBUG:   memory_limit: {self.config.settings.memory_limit}",
+                            file=sys.stderr,
+                        )
+                        print(
+                            f"DEBUG:   threads: {self.config.settings.threads}",
+                            file=sys.stderr,
+                        )
+                        print(
+                            f"DEBUG:   enable_extensions: {self.config.settings.enable_extensions}",
+                            file=sys.stderr,
+                        )
+
                         print(f"DEBUG: About to call duckdb.connect()", file=sys.stderr)
-                        
+
                         # Try with minimal configuration first to avoid compatibility issues
                         try:
-                            print(f"DEBUG: Trying basic connection first", file=sys.stderr)
+                            print(
+                                f"DEBUG: Trying basic connection first", file=sys.stderr
+                            )
+                            # Use the most basic connection possible for Windows 10 compatibility
                             conn = duckdb.connect(database=db_str, read_only=True)
-                            print(f"DEBUG: Basic connection successful", file=sys.stderr)
+                            print(
+                                f"DEBUG: Basic connection successful", file=sys.stderr
+                            )
                         except Exception as basic_error:
-                            print(f"DEBUG: Basic connection failed: {basic_error}", file=sys.stderr)
-                            print(f"DEBUG: Trying with advanced config", file=sys.stderr)
+                            print(
+                                f"DEBUG: Basic connection failed: {basic_error}",
+                                file=sys.stderr,
+                            )
+                            print(
+                                f"DEBUG: Trying with advanced config", file=sys.stderr
+                            )
                             conn = duckdb.connect(
                                 database=db_str,
                                 read_only=read_only,
@@ -113,39 +151,63 @@ class DatabaseManager(DatabaseInterface):
                                     "enable_external_access": self.config.settings.enable_extensions,
                                 },
                             )
-                        
-                        print(f"DEBUG: duckdb.connect() completed successfully", file=sys.stderr)
-                        result_queue.put(('success', conn))
-                        
+                        print(
+                            f"DEBUG: duckdb.connect() completed successfully",
+                            file=sys.stderr,
+                        )
+                        result_queue.put(("success", conn))
+
                     except Exception as e:
-                        print(f"DEBUG: Exception in connection thread: {type(e).__name__}: {e}", file=sys.stderr)
+                        print(
+                            f"DEBUG: Exception in connection thread: {type(e).__name__}: {e}",
+                            file=sys.stderr,
+                        )
                         import traceback
+
                         traceback.print_exc(file=sys.stderr)
-                        result_queue.put(('error', str(e)))
-                
-                print(f"DEBUG: Creating and starting connection thread", file=sys.stderr)
+                        result_queue.put(("error", str(e)))
+
+                print(
+                    f"DEBUG: Creating and starting connection thread", file=sys.stderr
+                )
                 thread = threading.Thread(target=do_connect, daemon=True)
                 thread.start()
-                
+
                 # Wait for result with timeout
                 timeout_seconds = 15  # Increased timeout to 15 seconds
-                print(f"DEBUG: Waiting for connection result (timeout: {timeout_seconds}s)", file=sys.stderr)
-                
+                print(
+                    f"DEBUG: Waiting for connection result (timeout: {timeout_seconds}s)",
+                    file=sys.stderr,
+                )
+
                 try:
                     result_type, result = result_queue.get(timeout=timeout_seconds)
-                    print(f"DEBUG: Got result from queue: {result_type}", file=sys.stderr)
-                    
-                    if result_type == 'success':
-                        print(f"DEBUG: Connection successful, returning connection object", file=sys.stderr)
+                    print(
+                        f"DEBUG: Got result from queue: {result_type}", file=sys.stderr
+                    )
+
+                    if result_type == "success":
+                        print(
+                            f"DEBUG: Connection successful, returning connection object",
+                            file=sys.stderr,
+                        )
                         return result
                     else:
-                        print(f"DEBUG: Connection failed with error: {result}", file=sys.stderr)
+                        print(
+                            f"DEBUG: Connection failed with error: {result}",
+                            file=sys.stderr,
+                        )
                         raise Exception(f"Connection failed: {result}")
-                        
+
                 except queue.Empty:
-                    print(f"DEBUG: Connection timed out after {timeout_seconds} seconds", file=sys.stderr)
-                    raise Exception(f"Connection timed out after {timeout_seconds} seconds")
-            
+                    print(
+                        f"DEBUG: Connection timed out after {timeout_seconds} seconds",
+                        file=sys.stderr,
+                    )
+                    raise Exception(
+                        f"Connection timed out after {timeout_seconds} seconds"
+                    )
+
             self.connection = connect_with_timeout()
             print(f"DuckDB connection established successfully", file=sys.stderr)
             logger.info(f"Successfully connected to DuckDB at: {self.db_path}")
@@ -166,7 +228,7 @@ class DatabaseManager(DatabaseInterface):
         # Add LIMIT if not present and limit is specified
         if limit and "LIMIT" not in query.upper():
             query = f"{query.rstrip(';')} LIMIT {limit}"
-        
+
         return self.execute_query_with_params(query)
 
     def execute_query_with_params(
@@ -559,7 +621,7 @@ class DatabaseManager(DatabaseInterface):
         return {
             "type": "duckdb",
             "db_path": str(self.db_path),
-            "connected": self.connection is not None
+            "connected": self.connection is not None,
         }
 
     def close(self):

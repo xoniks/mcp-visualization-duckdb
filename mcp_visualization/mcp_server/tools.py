@@ -845,7 +845,7 @@ class ToolRegistry:
                 self.db_manager.close()
 
             # Create new database manager with new path
-            from database.manager import DatabaseManager
+            from mcp_visualization.database.manager import DatabaseManager
 
             new_path = (
                 Path(database_path) if database_path != ":memory:" else database_path
