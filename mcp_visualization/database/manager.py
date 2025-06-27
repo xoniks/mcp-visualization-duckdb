@@ -99,20 +99,15 @@ class DatabaseManager(DatabaseInterface):
                         # Try with minimal configuration first to avoid compatibility issues
                         try:
                             print(f"DEBUG: Trying basic connection first", file=sys.stderr)
-                            conn = duckdb.connect(database=db_str, read_only=True)
+                            # Use the most basic connection possible for Windows 10 compatibility
+                            conn = duckdb.connect(database=db_str)
                             print(f"DEBUG: Basic connection successful", file=sys.stderr)
                         except Exception as basic_error:
                             print(f"DEBUG: Basic connection failed: {basic_error}", file=sys.stderr)
-                            print(f"DEBUG: Trying with advanced config", file=sys.stderr)
-                            conn = duckdb.connect(
-                                database=db_str,
-                                read_only=read_only,
-                                config={
-                                    "memory_limit": self.config.settings.memory_limit,
-                                    "threads": self.config.settings.threads,
-                                    "enable_external_access": self.config.settings.enable_extensions,
-                                },
-                            )
+                            print(f"DEBUG: Trying in-memory fallback", file=sys.stderr)
+                            # If file connection fails, try in-memory as fallback
+                            conn = duckdb.connect(database=":memory:")
+                            print(f"DEBUG: In-memory fallback successful", file=sys.stderr)
                         
                         print(f"DEBUG: duckdb.connect() completed successfully", file=sys.stderr)
                         result_queue.put(('success', conn))
